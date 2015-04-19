@@ -34,6 +34,7 @@
 #include <zipios++/gzipoutputstream.h>
 
 #include "SoFCDB.h"
+#include "SoVTKActor.h"
 #include "SoFCColorBar.h"
 #include "SoFCColorLegend.h"
 #include "SoFCColorGradient.h"
@@ -110,6 +111,7 @@ void Gui::SoFCDB::init()
     SoRegPoint                      ::initClass();
     SoDrawingGrid                   ::initClass();
     SoAutoZoomTranslation           ::initClass();
+    SoVTKActor                      ::initClass();
 
     PropertyItem                    ::init();
     PropertySeparatorItem           ::init();
