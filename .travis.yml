@@ -4,7 +4,7 @@ language: cpp
 
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install -y doxygen
+#    - sudo apt-get install -y doxygen
     - sudo apt-get install -y libboost-dev
     - sudo apt-get install -y libboost-filesystem-dev
     - sudo apt-get install -y libboost-program-options-dev
