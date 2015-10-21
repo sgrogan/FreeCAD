@@ -32,7 +32,7 @@ before_install:
     - sudo apt-get install -y libxmuu1
     - sudo apt-get install -y oce-draw
     - sudo apt-get install -y pyside-tools
-    - sudo apt-get install -y python
+    - sudo apt-get install -y python2.7
     - sudo apt-get install -y python-dev
     - sudo apt-get install -y python-matplotlib
     - sudo apt-get install -y python-pyside
