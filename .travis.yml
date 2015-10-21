@@ -20,7 +20,8 @@ before_install:
     - sudo apt-get install -y liboce-modeling-dev
     - sudo apt-get install -y liboce-ocaf-dev
     - sudo apt-get install -y liboce-visualization-dev
-    - sudo apt-get install -y liboce-ocaf-lite-dev 
+    - sudo apt-get install -y liboce-ocaf-lite-dev
+    - sudo apt-get install -y libpython2.7-dev
     - sudo apt-get install -y libpyside-dev
     - sudo apt-get install -y libqtcore4
     - sudo apt-get install -y libshiboken-dev
@@ -33,7 +34,7 @@ before_install:
     - sudo apt-get install -y oce-draw
     - sudo apt-get install -y pyside-tools
     - sudo apt-get install -y python2.7
-    - sudo apt-get install -y python-dev
+    - sudo apt-get install -y python2.7-dev
     - sudo apt-get install -y python-matplotlib
     - sudo apt-get install -y python-pyside
     - sudo apt-get install -y qt4-dev-tools
