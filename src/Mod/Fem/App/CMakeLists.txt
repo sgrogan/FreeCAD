@@ -26,27 +26,28 @@ include_directories(
 
 link_directories(${OCC_LIBRARY_DIR})
 
-
+set(Fem_LIBS
+        Part
+        FreeCADApp
+        StdMeshers
+        SMESH
+        SMDS
+        SMESHDS
+    )
+    
 if(BUILD_FEM_NETGEN)
     set(Fem_LIBS
-        Part
-        FreeCADApp
-        StdMeshers
+        ${Fem_LIBS}
         NETGENPlugin
-        SMESH
-        SMDS
-        SMESHDS
-    )
-else(BUILD_FEM_NETGEN)
-    set(Fem_LIBS
-        Part
-        FreeCADApp
-        StdMeshers
-        SMESH
-        SMDS
-        SMESHDS
     )
 endif(BUILD_FEM_NETGEN)
+
+if(BUILD_FEM_VTK)
+    set(Fem_LIBS
+        ${Fem_LIBS}
+        ${VTK_LIBRARIES}
+    )
+endif(BUILD_FEM_VTK)
 
 generate_from_xml(FemMeshPy)
 
@@ -190,15 +191,24 @@ SET(FemConstraints_SRCS
 	)
 SOURCE_GROUP("Constraints" FILES ${FemConstraints_SRCS})
 
-SET(FemResult_SRCS
+if(BUILD_FEM_VTK) 
+    SET(FemPost_SRCS
+        FemPostObject.h
+        FemPostObject.cpp
+        FemPostPipeline.h
+        FemPostPipeline.cpp
+        FemPostFilter.h
+        FemPostFilter.cpp
 	)
-SOURCE_GROUP("ResultObjects" FILES ${FemResult_SRCS})
+    SOURCE_GROUP("PostObjects" FILES ${FemPost_SRCS})
+endif(BUILD_FEM_VTK)
+
 
 SET(Fem_SRCS
 	${FemBase_SRCS}
 	${FemSet_SRCS}
 	${FemConstraints_SRCS}
-	${FemResult_SRCS}
+	${FemPost_SRCS}
     ${Mod_SRCS}
     ${Python_SRCS}
 )
