@@ -77,6 +77,15 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
          << "Fem_Quick_Analysis"
          << "Fem_PurgeResults"
          << "Fem_ShowResult";
+         
+#ifdef FC_USE_VTK
+     Gui::ToolBarItem* post = new Gui::ToolBarItem(root);
+     post->setCommand("Post Processing");
+     *post  << "Fem_PostApplyChanges"
+            << "Fem_PostCreateClipFilter"
+            << "Fem_PostCreateFunctions";
+#endif
+            
     return root;
 }
 
