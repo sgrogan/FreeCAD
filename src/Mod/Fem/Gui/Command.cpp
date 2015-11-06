@@ -774,8 +774,8 @@ CmdFemPostCreateClipFilter::CmdFemPostCreateClipFilter()
 {
     sAppModule      = "Fem";
     sGroup          = QT_TR_NOOP("Fem");
-    sMenuText       = QT_TR_NOOP("Define/create a clip filter for a post processing pipeline...");
-    sToolTipText    = QT_TR_NOOP("Define/create a clip filter for a post processing pipeline...");
+    sMenuText       = QT_TR_NOOP("Define/create a clip filter which uses functions to define the cliped region");
+    sToolTipText    = QT_TR_NOOP("Define/create a clip filter which uses functions to define the cliped region");
     sWhatsThis      = "Fem_PostCreateClipFilter";
     sStatusTip      = sToolTipText;
     sPixmap         = "fem-fem-mesh-create-node-by-poly";
@@ -783,10 +783,9 @@ CmdFemPostCreateClipFilter::CmdFemPostCreateClipFilter()
 
 void CmdFemPostCreateClipFilter::activated(int iMsg)
 {
-    Gui::SelectionFilter ObjectFilter("SELECT Fem::FemPostPipeline COUNT 1");
- 
-    if (ObjectFilter.match()) {
-        Fem::FemPostPipeline *pipeline = static_cast<Fem::FemPostPipeline*>(ObjectFilter.Result[0][0].getObject());
+    std::vector<Fem::FemPostPipeline*> pipelines = App::GetApplication().getActiveDocument()->getObjectsOfType<Fem::FemPostPipeline>();
+    if (!pipelines.empty()) {
+        Fem::FemPostPipeline *pipeline = pipelines.front();
 
         std::string FeatName = getUniqueObjectName("Clip");
 
@@ -798,6 +797,8 @@ void CmdFemPostCreateClipFilter::activated(int iMsg)
         doCommand(Doc,"del __list__");
         
         this->updateActive();
+        doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
+
     }
     else {
         QMessageBox::warning(Gui::getMainWindow(),
@@ -807,6 +808,50 @@ void CmdFemPostCreateClipFilter::activated(int iMsg)
 }
 
 bool CmdFemPostCreateClipFilter::isActive(void)
+{
+    return hasActiveDocument();
+}
+
+DEF_STD_CMD_A(CmdFemPostCreateScalarClipFilter);
+
+CmdFemPostCreateScalarClipFilter::CmdFemPostCreateScalarClipFilter()
+  : Command("Fem_PostCreateScalarClipFilter")
+{
+    sAppModule      = "Fem";
+    sGroup          = QT_TR_NOOP("Fem");
+    sMenuText       = QT_TR_NOOP("Define/create a clip filter which clips a field with a scalar value");
+    sToolTipText    = QT_TR_NOOP("Define/create a clip filter which clips a field with a scalar value");
+    sWhatsThis      = "Fem_PostCreateScalarClipFilter";
+    sStatusTip      = sToolTipText;
+    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+}
+
+void CmdFemPostCreateScalarClipFilter::activated(int iMsg)
+{
+    std::vector<Fem::FemPostPipeline*> pipelines = App::GetApplication().getActiveDocument()->getObjectsOfType<Fem::FemPostPipeline>();
+    if (!pipelines.empty()) {
+        Fem::FemPostPipeline *pipeline = pipelines.front();
+
+        std::string FeatName = getUniqueObjectName("ScalarClip");
+
+        openCommand("Create scalar clip filter");
+        doCommand(Doc,"App.activeDocument().addObject('Fem::FemPostScalarClipFilter','%s')",FeatName.c_str());  
+        doCommand(Doc,"__list__ = App.ActiveDocument.%s.Filter", pipeline->getNameInDocument());
+        doCommand(Doc,"__list__.append(App.ActiveDocument.%s)", FeatName.c_str());
+        doCommand(Doc,"App.ActiveDocument.%s.Filter = __list__", pipeline->getNameInDocument());
+        doCommand(Doc,"del __list__");
+        
+        this->updateActive();
+        doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
+    }
+    else {
+        QMessageBox::warning(Gui::getMainWindow(),
+            qApp->translate("CmdFemPostCreateScalarClipFilter", "Wrong selection"),
+            qApp->translate("CmdFemPostCreateScalarClipFilter", "Select a pipeline, please."));
+    }
+}
+
+bool CmdFemPostCreateScalarClipFilter::isActive(void)
 {
     return hasActiveDocument();
 }
@@ -825,31 +870,30 @@ CmdFemPostFunctions::CmdFemPostFunctions()
     sToolTipText    = QT_TR_NOOP("Functions for use in postprocessing filter...");
     sWhatsThis      = "Fem_PostCreateFunctions";
     sStatusTip      = sToolTipText;
+    eType           = eType|ForEdit;
 }
 
 void CmdFemPostFunctions::activated(int iMsg)
 {
-    Gui::CommandManager &rcCmdMgr = Gui::Application::Instance->commandManager();
+ 
     std::string name;
     if (iMsg==0)
         name = "Plane";
     else if (iMsg==1)
-        rcCmdMgr.runCommandByName("Part_JoinEmbed");
-    else if (iMsg==2)
-        rcCmdMgr.runCommandByName("Part_JoinCutout");
+        name = "Sphere";
     else
         return;
 
     //create the object
-    Gui::SelectionFilter ObjectFilter("SELECT Fem::FemPostPipeline COUNT 1");
-    if (ObjectFilter.match()) {
-        Fem::FemPostPipeline *pipeline = static_cast<Fem::FemPostPipeline*>(ObjectFilter.Result[0][0].getObject());
+    std::vector<Fem::FemPostPipeline*> pipelines = App::GetApplication().getActiveDocument()->getObjectsOfType<Fem::FemPostPipeline>();
+    if (!pipelines.empty()) {
+        Fem::FemPostPipeline *pipeline = pipelines.front();
 
         openCommand("Create function");
         
         //check if the pipeline has a filter provider and add one if needed
         Fem::FemPostFunctionProvider* provider;
-        if(!pipeline->Function.getValue() || pipeline->Function.getValue()->getTypeId() == Fem::FemPostFunctionProvider::getClassTypeId()) {
+        if(!pipeline->Function.getValue() || pipeline->Function.getValue()->getTypeId() != Fem::FemPostFunctionProvider::getClassTypeId()) {
             std::string FuncName = getUniqueObjectName("Functions");
             doCommand(Doc,"App.ActiveDocument.addObject('Fem::FemPostFunctionProvider','%s')", FuncName.c_str());
             doCommand(Doc,"App.ActiveDocument.%s.Function = App.ActiveDocument.%s", pipeline->getNameInDocument(), FuncName.c_str());
@@ -867,6 +911,7 @@ void CmdFemPostFunctions::activated(int iMsg)
         doCommand(Doc,"del __list__");
         
         this->updateActive();
+        doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
     }
     else {
         QMessageBox::warning(Gui::getMainWindow(),
@@ -890,7 +935,7 @@ Gui::Action * CmdFemPostFunctions::createAction(void)
     applyCommandData(this->className(), pcAction);
 
     QAction* cmd0 = pcAction->addAction(QString());
-    //cmd0->setIcon(Gui::BitmapFactory().pixmap("Part_JoinConnect"));
+    pcAction->addAction(QString());
  
     _pcAction = pcAction;
     languageChange();
@@ -911,10 +956,15 @@ void CmdFemPostFunctions::languageChange()
     Gui::ActionGroup* pcAction = qobject_cast<Gui::ActionGroup*>(_pcAction);
     QList<QAction*> a = pcAction->actions();
 
-    QAction* cmd0 = a[0];
-    cmd0->setText(QApplication::translate("CmdFemPostFunctions","Plane"));
-    cmd0->setToolTip(QApplication::translate("Fem_PostCreateFunctions","Create a plane function, defined by its orgin and normal"));
-    cmd0->setStatusTip(cmd0->toolTip());
+    QAction* cmd = a[0];
+    cmd->setText(QApplication::translate("CmdFemPostFunctions","Plane"));
+    cmd->setToolTip(QApplication::translate("Fem_PostCreateFunctions","Create a plane function, defined by its orgin and normal"));
+    cmd->setStatusTip(cmd->toolTip());
+    
+    cmd = a[1];
+    cmd->setText(QApplication::translate("CmdFemPostFunctions","Sphere"));
+    cmd->setToolTip(QApplication::translate("Fem_PostCreateFunctions","Create a phere function, defined by its center and radius"));
+    cmd->setStatusTip(cmd->toolTip());
     
 }
 
@@ -925,6 +975,7 @@ bool CmdFemPostFunctions::isActive(void)
     else
         return false;
 }
+
 
 DEF_STD_CMD_AC(CmdFemPostApllyChanges);
 
@@ -938,6 +989,7 @@ CmdFemPostApllyChanges::CmdFemPostApllyChanges()
     sWhatsThis      = "Fem_PostApplyChanges";
     sStatusTip      = sToolTipText;
     sPixmap         = "view-refresh";
+    eType           = eType|ForEdit;
 }
 
 void CmdFemPostApllyChanges::activated(int iMsg)
@@ -991,6 +1043,7 @@ void CreateFemCommands(void)
     
 #ifdef FC_USE_VTK
     rcCmdMgr.addCommand(new CmdFemPostCreateClipFilter);
+    rcCmdMgr.addCommand(new CmdFemPostCreateScalarClipFilter);
     rcCmdMgr.addCommand(new CmdFemPostFunctions);
     rcCmdMgr.addCommand(new CmdFemPostApllyChanges);
 #endif
