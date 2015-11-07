@@ -92,12 +92,14 @@ SET(PYCXX_SOURCE_DIR
 # used as compiler defines
 SET(RESOURCEDIR "${CMAKE_INSTALL_DATADIR}")
 SET(DOCDIR "${CMAKE_INSTALL_DOCDIR}")
+SET(HOMEDIR "${CMAKE_INSTALL_HOMEDIR}")
 
 MESSAGE(STATUS "prefix: ${CMAKE_INSTALL_PREFIX}")
 MESSAGE(STATUS "datadir: ${CMAKE_INSTALL_DATADIR}")
 MESSAGE(STATUS "docdir: ${CMAKE_INSTALL_DOCDIR}")
 MESSAGE(STATUS "includedir: ${CMAKE_INSTALL_INCLUDEDIR}")
 MESSAGE(STATUS "libdir: ${CMAKE_INSTALL_LIBDIR}")
+MESSAGE(STATUS "homedir: ${CMAKE_INSTALL_HOMEDIR}")
 
 # ==============================================================================
 # == Win32 is default behaviour use the LibPack copied in Source tree ==========
