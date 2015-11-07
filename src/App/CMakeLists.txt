@@ -8,6 +8,10 @@ IF(RESOURCEDIR)
     add_definitions(-DRESOURCEDIR="${RESOURCEDIR}")
 ENDIF(RESOURCEDIR)
 
+IF(HOMEDIR)
+    add_definitions(-DHOMEDIR="${HOMEDIR}")
+ENDIF(HOMEDIR)
+
 IF(DOCDIR)
     add_definitions(-DDOCDIR="${DOCDIR}")
 ENDIF(DOCDIR)
