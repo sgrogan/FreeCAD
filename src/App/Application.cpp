@@ -531,7 +531,7 @@ std::string Application::getResourceDir()
     if (dir.isAbsolute())
         return path;
     else
-        return mConfig["AppHomePath"] + path;
+        return mConfig["AppHomePath"];
 #else
     return mConfig["AppHomePath"];
 #endif
@@ -1136,8 +1136,14 @@ void Application::initTypes(void)
 
 void Application::initConfig(int argc, char ** argv)
 {
-    // find the home path....
+// find the home path....
+#ifdef HOMEDIR
+    std::string path(HOMEDIR);
+    path.append("/");
+    mConfig["AppHomePath"] = path;
+#else
     mConfig["AppHomePath"] = FindHomePath(argv[0]);
+#endif
 
     // Version of the application extracted from SubWCRef into src/Build/Version.h
     // We only set these keys if not yet defined. Therefore it suffices to search
