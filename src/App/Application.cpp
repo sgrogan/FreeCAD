@@ -531,7 +531,7 @@ std::string Application::getResourceDir()
     if (dir.isAbsolute())
         return path;
     else
-        return mConfig["AppHomePath"];
+        return mConfig["AppBinPath"] + path;
 #else
     return mConfig["AppHomePath"];
 #endif
@@ -1141,8 +1141,10 @@ void Application::initConfig(int argc, char ** argv)
     std::string path(HOMEDIR);
     path.append("/");
     mConfig["AppHomePath"] = path;
+    mConfig["AppBinPath"] = FindHomePath(argv[0]);
 #else
     mConfig["AppHomePath"] = FindHomePath(argv[0]);
+    mConfig["AppBinPath"] = FindHomePath(argv[0]);
 #endif
 
     // Version of the application extracted from SubWCRef into src/Build/Version.h
