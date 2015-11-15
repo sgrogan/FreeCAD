@@ -49,6 +49,7 @@
 #include <Gui/View3DInventorViewer.h>
 #include <Gui/Utilities.h>
 #include <Gui/Action.h>
+#include <Gui/BitmapFactory.h>
 
 #include <SMESH_Mesh.hxx>
 #include <SMESHDS_Mesh.hxx>
@@ -804,7 +805,7 @@ CmdFemPostCreateClipFilter::CmdFemPostCreateClipFilter()
     sToolTipText    = QT_TR_NOOP("Define/create a clip filter which uses functions to define the cliped region");
     sWhatsThis      = "Fem_PostCreateClipFilter";
     sStatusTip      = sToolTipText;
-    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+    sPixmap         = "fem-clip";
 }
 
 void CmdFemPostCreateClipFilter::activated(int iMsg)
@@ -828,7 +829,7 @@ CmdFemPostCreateScalarClipFilter::CmdFemPostCreateScalarClipFilter()
     sToolTipText    = QT_TR_NOOP("Define/create a clip filter which clips a field with a scalar value");
     sWhatsThis      = "Fem_PostCreateScalarClipFilter";
     sStatusTip      = sToolTipText;
-    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+    sPixmap         = "fem-clip-scalar";
 }
 
 void CmdFemPostCreateScalarClipFilter::activated(int iMsg)
@@ -854,7 +855,7 @@ CmdFemPostWarpVectorFilter::CmdFemPostWarpVectorFilter()
     sToolTipText    = QT_TR_NOOP("Warp the geometry along a vector field by a certain factor");
     sWhatsThis      = "Fem_PostCreateWarpVectorFilter";
     sStatusTip      = sToolTipText;
-    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+    sPixmap         = "fem-warp";
 }
 
 void CmdFemPostWarpVectorFilter::activated(int iMsg)
@@ -878,7 +879,7 @@ CmdFemPostCutFilter::CmdFemPostCutFilter()
     sToolTipText    = QT_TR_NOOP("Cut the data along an implicit function");
     sWhatsThis      = "Fem_PostCreateCutFilter";
     sStatusTip      = sToolTipText;
-    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+    sPixmap         = "fem-cut";
 }
 
 void CmdFemPostCutFilter::activated(int iMsg)
@@ -972,12 +973,15 @@ Gui::Action * CmdFemPostFunctions::createAction(void)
     applyCommandData(this->className(), pcAction);
 
     QAction* cmd0 = pcAction->addAction(QString());
-    pcAction->addAction(QString());
+    cmd0->setIcon(Gui::BitmapFactory().pixmap("fem-plane"));
+    
+    QAction* cmd1 = pcAction->addAction(QString());
+    cmd1->setIcon(Gui::BitmapFactory().pixmap("fem-sphere"));
  
     _pcAction = pcAction;
     languageChange();
 
-    pcAction->setIcon(cmd0->icon());
+    pcAction->setIcon(cmd1->icon());
     int defaultId = 0;
     pcAction->setProperty("defaultAction", QVariant(defaultId));
 
@@ -1057,9 +1061,6 @@ Gui::Action * CmdFemPostApllyChanges::createAction(void)
     return pcAction;
 }
 
-#endif
-
-
 
 DEF_STD_CMD_A(CmdFemPostPipelineFromResult);
 
@@ -1072,7 +1073,7 @@ CmdFemPostPipelineFromResult::CmdFemPostPipelineFromResult()
     sToolTipText    = QT_TR_NOOP("Creates a post processing pipeline from a result object");
     sWhatsThis      = "Fem_PostPipelineFromResult";
     sStatusTip      = sToolTipText;
-    sPixmap         = "fem-fem-mesh-create-node-by-poly";
+    sPixmap         = "fem-data";
 }
 
 void CmdFemPostPipelineFromResult::activated(int iMsg)
@@ -1105,6 +1106,7 @@ bool CmdFemPostPipelineFromResult::isActive(void)
     return hasActiveDocument();
 }
 
+#endif
 
 //--------------------------------------------------------------------------------------
 
