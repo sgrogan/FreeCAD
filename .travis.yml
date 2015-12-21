@@ -51,7 +51,7 @@ install:
     - mkdir build && cd build && cmake ../
 
 script:
-    - make -j2
+    - make -j3
     - PYTHONPATH=$(pwd)/lib/ python -c "import sys, unittest, FreeCAD, TestApp; sys.exit(0 if unittest.TextTestRunner().run(TestApp.All()).wasSuccessful() else 1)"
     - bin/FreeCAD --log-file /tmp/FreeCAD.log &
     - sleep 10 && pkill FreeCAD
