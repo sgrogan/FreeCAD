@@ -45,7 +45,7 @@ IF(EIGEN3_FOUND)
     if(BUILD_SKETCHER)
       add_subdirectory(Sketcher)
     endif(BUILD_SKETCHER)
-    
+
     if(BUILD_ROBOT)
       add_subdirectory(Robot)
     endif(BUILD_ROBOT)
@@ -125,3 +125,7 @@ endif(BUILD_JTREADER)
 if(BUILD_PATH)
     add_subdirectory(Path)
 endif(BUILD_PATH)
+
+if(BUILD_TECHDRAW)
+    add_subdirectory(TechDraw)
+endif(BUILD_TECHDRAW)

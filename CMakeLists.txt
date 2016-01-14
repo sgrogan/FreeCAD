@@ -194,6 +194,7 @@ OPTION(BUILD_SKETCHER "Build the FreeCAD sketcher module" ON)
 OPTION(BUILD_SPREADSHEET "Build the FreeCAD spreadsheet module" ON)
 OPTION(BUILD_START "Build the FreeCAD start module" ON)
 OPTION(BUILD_TEST "Build the FreeCAD test module" ON)
+OPTION(BUILD_TECHDRAW "Build the FreeCAD Technical Drawing module" ON)
 OPTION(BUILD_WEB "Build the FreeCAD web module" ON)
 OPTION(BUILD_VR "Build the FreeCAD Oculus Rift support (need Oculus SDK 4.x or higher)" OFF)
 
@@ -230,6 +231,7 @@ if(BUILD_COMPLETE)
   set(BUILD_MESH ON)
   set(BUILD_POINTS ON)
   set(BUILD_DRAWING ON)
+  set(BUILD_TECHDRAW ON)
   set(BUILD_RAYTRACING ON)
   set(BUILD_PART_DESIGN ON)
   set(BUILD_IMAGE ON)
@@ -301,6 +303,13 @@ if(BUILD_DRAWING)
   set(BUILD_PART ON)
   set(BUILD_SPREADSHEET ON)
 endif(BUILD_DRAWING)
+
+#add TechDraw
+if(BUILD_TECHDRAW)
+  set(BUILD_PART ON)
+  set(BUILD_SPREADSHEET ON)
+endif(BUILD_TECHDRAW)
+
 
 #inferred from cmakelists.txt. appears to be working.
 if(BUILD_ROBOT)
@@ -1037,4 +1046,3 @@ if (${CMAKE_BUILD_TOOL} MATCHES "make")
             "Now run 'make' to build ${PACKAGE_NAME}\n"
             "=======================================\n")
 endif()
-
