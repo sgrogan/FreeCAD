@@ -127,5 +127,6 @@ if(BUILD_PATH)
 endif(BUILD_PATH)
 
 if(BUILD_TECHDRAW)
+    add_subdirectory(Measure)
     add_subdirectory(TechDraw)
 endif(BUILD_TECHDRAW)
