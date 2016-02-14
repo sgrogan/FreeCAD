@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) 2012-2013 Luke Parry <l.parry@warwick.ac.uk>            *
+ *   Copyright (c) 2016                    Ian Rees <ian.rees@gmail.com>   *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -20,64 +20,75 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef DRAWINGGUI_QGRAPHICSITEMVIEW_H
-#define DRAWINGGUI_QGRAPHICSITEMVIEW_H
+#ifndef GIVIEWBASE_HEADER
+#define GIVIEWBASE_HEADER
 
+#include <QFont>
+#include <QGraphicsItemGroup>
+#include <QObject>
+#include <QPen>
 
-#include "../App/GIBase.h"
-
-QT_BEGIN_NAMESPACE
-class QGraphicsScene;
-class QGraphicsSceneMouseEvent;
-QT_END_NAMESPACE
+#include "DrawView.h"
 
 namespace TechDraw {
-class DrawView;
-}
 
-namespace TechDrawGui
-{
-
-class TechDrawGuiExport QGIView : public TechDraw::GIBase
+class TechDrawExport GIBase : public QObject, public QGraphicsItemGroup
 {
     Q_OBJECT
-
 public:
-    QGIView(const QPoint &position, QGraphicsScene *scene);
-    ~QGIView() = default;
+    GIBase(const QPoint &pos, QGraphicsScene *scene);
+    virtual ~GIBase() {};
 
-    virtual void toggleBorder(bool state = true);
-    virtual void drawBorder(void);
+    enum {Type = QGraphicsItem::UserType + 101};
+    int type() const { return Type;}
 
-    void setLocked(bool state = true) { locked = true; }
+    const char * getViewName() const;
 
-    virtual void toggleCache(bool state);
+    void setViewFeature(TechDraw::DrawView *obj);
+    TechDraw::DrawView * getViewObject() const;    
 
+    /// Methods to ensure that Y-Coordinates are orientated correctly.
+    /// @{
+    void setPosition(qreal x, qreal y);
+    inline qreal getY() { return y() * -1; }
+    bool isInnerView() { return m_innerView; }
+    void isInnerView(bool state) { m_innerView = state; }
+    double getYInClip(double y);
+    /// @}
+
+    /// Used for constraining views to line up eg in a Projection Group
+    void alignTo(QGraphicsItem*, const QString &alignment);
+
+    virtual void updateView(bool update = false);
     virtual void paint( QPainter *painter,
                         const QStyleOptionGraphicsItem *option,
                         QWidget *widget = nullptr );
 
-    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+Q_SIGNALS:
+    void dirty();
 
 protected:
-
-    bool borderVisible;
-    
-        // Mouse handling
-    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event );
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
-    // Preselection events:
-    virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
-    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
-    virtual QRectF customChildrenBoundingRect(void);
-
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
-   
-    QBrush m_brush;
-    QPen m_decorPen;
+    DrawView *viewObj;
+
+    bool locked;
+    bool m_innerView;  //View is inside another View
+
+    std::string viewName;
+
+    QColor m_colCurrent;
+    QColor m_colNormal;
+    QColor m_colPre;
+    QColor m_colSel;
+    QFont m_font;
+    QGraphicsRectItem* m_border;
+    QGraphicsTextItem* m_label;
+    QHash<QString, QGraphicsItem*> alignHash;
+    QPen m_pen;
 };
 
-} // namespace MDIViewPageGui
+} // end namespace TechDraw
 
-#endif // DRAWINGGUI_QGRAPHICSITEMVIEW_H
+#endif // #ifndef GIVIEWBASE_HEADER
+

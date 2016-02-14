@@ -23,6 +23,7 @@ set(TechDrawLIBS
     Measure
     Part
     FreeCADApp
+    ${QT_LIBRARIES}
 )
 
 generate_from_xml(DrawPagePy)
@@ -39,6 +40,18 @@ generate_from_xml(DrawHatchPy)
 generate_from_xml(DrawViewCollectionPy)
 generate_from_xml(DrawProjGroupPy)
 generate_from_xml(DrawProjGroupItemPy)
+
+SET(DrawGI_MOC_HDRS
+    GIBase.h
+   ) # end of SET(DrawGI_MOC_HDRS
+
+fc_wrap_cpp(TechDraw_MOC_SRCS ${DrawGI_MOC_HDRS})
+SOURCE_GROUP("TechDraw Moc" FILES ${TechDraw_MOC_SRCS})
+
+SET(DrawGI_SRCS
+    GIBase.cpp
+    ${DrawGI_MOC_HDRS}
+   ) # end of SET(QGI_SRCS
 
 SET(Draw_SRCS
     DrawPage.cpp
@@ -122,6 +135,7 @@ SOURCE_GROUP("Mod" FILES ${TechDraw_SRCS})
 SOURCE_GROUP("Features" FILES ${Draw_SRCS})
 SOURCE_GROUP("Geometry" FILES ${Geometry_SRCS})
 SOURCE_GROUP("Python" FILES ${Python_SRCS})
+SOURCE_GROUP("GraphicsItems" FILES ${DrawGI_SRCS})
 
 
 if(MSVC)
@@ -131,7 +145,7 @@ if(MSVC)
 endif(MSVC)
 
 add_library(TechDraw SHARED ${TechDraw_SRCS} ${Draw_SRCS} ${TechDrawAlgos_SRCS}
-                           ${Geometry_SRCS} ${Python_SRCS})
+                            ${Geometry_SRCS} ${Python_SRCS} ${DrawGI_SRCS})
 target_link_libraries(TechDraw ${TechDrawLIBS};${QT_QTXML_LIBRARY};${TechDraw})
 
 SET(TechDrawScripts

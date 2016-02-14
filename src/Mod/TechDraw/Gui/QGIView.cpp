@@ -22,140 +22,30 @@
 
 #include "PreCompiled.h"
 #ifndef _PreComp_
-#include <QAction>
-#include <QApplication>
-#include <QContextMenuEvent>
-#include <QGraphicsScene>
-#include <QGraphicsSceneHoverEvent>
-#include <QGraphicsSceneMouseEvent>
-#include <QMenu>
-#include <QMessageBox>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QPainterPathStroker>
-#include <QStyleOptionGraphicsItem>
-#include <QTextOption>
-#include <QTransform>
-#include <strstream>
+    #include <QAction>
+    #include <QGraphicsScene>
+    #include <QGraphicsSceneHoverEvent>
+    #include <QGraphicsSceneMouseEvent>
+    #include <QMouseEvent>
+    #include <QPainter>
+    #include <QStyleOptionGraphicsItem>
 #endif
 
-#include <App/Application.h>
-#include <App/Document.h>
-#include <App/Material.h>
-#include <Base/Console.h>
-#include <Base/Parameter.h>
-#include <Gui/Selection.h>
-#include <Gui/Command.h>
+#include "App/Document.h"
+#include "Base/Console.h"
+#include "Gui/Selection.h"
+#include "Gui/Command.h"
 
-#include "../App/DrawView.h"
-#include "../App/DrawViewClip.h"
 #include "QGIView.h"
-#include "QGCustomClip.h"
-#include "QGIViewClip.h"
 
 using namespace TechDrawGui;
 
-void _debugRect(char* text, QRectF r);
-
 QGIView::QGIView(const QPoint &pos, QGraphicsScene *scene)
-    :QGraphicsItemGroup(),
-     locked(false),
-     borderVisible(true),
-     m_innerView(false)
+    : TechDraw::GIBase(pos, scene),
+      borderVisible(true)
 {
-    setFlag(QGraphicsItem::ItemIsSelectable,true);
-    setFlag(QGraphicsItem::ItemSendsScenePositionChanges, true);
-    setFlag(QGraphicsItem::ItemSendsGeometryChanges,true);
-    setAcceptHoverEvents(true);
-    setPos(pos);
-
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
-        .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw/Colors");
-    App::Color fcColor = App::Color((uint32_t) hGrp->GetUnsigned("NormalColor", 0x00000000));
-    m_colNormal = fcColor.asQColor();
-    fcColor.setPackedValue(hGrp->GetUnsigned("SelectColor", 0x0000FF00));
-    m_colSel = fcColor.asQColor();
-    fcColor.setPackedValue(hGrp->GetUnsigned("PreSelectColor", 0x00080800));
-    m_colPre = fcColor.asQColor();
-
-    m_colCurrent = m_colNormal;
-    m_pen.setColor(m_colCurrent);
-
-    hGrp = App::GetApplication().GetUserParameter().GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw");
-    std::string fontName = hGrp->GetASCII("LabelFont", "osifont");
-    m_font.setFamily(QString::fromStdString(fontName));
-    m_font.setPointSize(5.0);     //scene units (mm), not points
-
-    //Add object to scene
-    scene->addItem(this);
-
-    m_label = new QGraphicsTextItem();
-    addToGroup(m_label);
-    m_label->setFont(m_font);
-
-    m_border = new QGraphicsRectItem();
-    addToGroup(m_border);
     m_decorPen.setStyle(Qt::DashLine);
     m_decorPen.setWidth(0); // 0 => 1px "cosmetic pen"
-}
-
-QGIView::~QGIView()
-{
-
-}
-
-void QGIView::alignTo(QGraphicsItem*item, const QString &alignment)
-{
-    alignHash.clear();
-    alignHash.insert(alignment, item);
-}
-
-QVariant QGIView::itemChange(GraphicsItemChange change, const QVariant &value)
-{
-    if(change == ItemPositionChange && scene()) {
-        QPointF newPos = value.toPointF();
-
-        if(locked){
-            newPos.setX(pos().x());
-            newPos.setY(pos().y());
-        }
-
-        // TODO  find a better data structure for this
-        if(alignHash.size() == 1) {
-            QGraphicsItem*item = alignHash.begin().value();
-            QString alignMode   = alignHash.begin().key();
-
-            if(alignMode == QString::fromAscii("Vertical")) {
-                newPos.setX(item->pos().x());
-            } else if(alignMode == QString::fromAscii("Horizontal")) {
-                newPos.setY(item->pos().y());
-            } else if(alignMode == QString::fromAscii("45slash")) {
-                double dist = ( (newPos.x() - item->pos().x()) +
-                                (item->pos().y() - newPos.y()) ) / 2.0;
-
-                newPos.setX( item->pos().x() + dist);
-                newPos.setY( item->pos().y() - dist );
-            } else if(alignMode == QString::fromAscii("45backslash")) {
-                double dist = ( (newPos.x() - item->pos().x()) +
-                                (newPos.y() - item->pos().y()) ) / 2.0;
-
-                newPos.setX( item->pos().x() + dist);
-                newPos.setY( item->pos().y() + dist );
-            }
-        }
-        return newPos;
-    }
-
-    if (change == ItemSelectedHasChanged && scene()) {
-        if(isSelected()) {
-            m_colCurrent = m_colSel;
-        } else {
-            m_colCurrent = m_colNormal;
-        }
-        drawBorder();
-    }
-
-    return QGraphicsItemGroup::itemChange(change, value);
 }
 
 void QGIView::mousePressEvent(QGraphicsSceneMouseEvent * event)
@@ -170,6 +60,18 @@ void QGIView::mousePressEvent(QGraphicsSceneMouseEvent * event)
 void QGIView::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     QGraphicsItem::mouseMoveEvent(event);
+}
+
+void QGIView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+    QStyleOptionGraphicsItem myOption(*option);
+    myOption.state &= ~QStyle::State_Selected;
+
+    if(!borderVisible){
+         m_label->hide();
+         m_border->hide();
+    }
+    GIBase::paint(painter, &myOption, widget);
 }
 
 void QGIView::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
@@ -214,96 +116,25 @@ void QGIView::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
     //update();
 }
 
-void QGIView::setPosition(qreal x, qreal y)
-{
-    if (!isInnerView()) {
-        setPos(x,-y);                                                 //position on page
-    } else {
-        setPos(x,getYInClip(y));                                      //position in Clip
-    }
-}
-
-double QGIView::getYInClip(double y)
-{
-    QGCustomClip* parentClip = dynamic_cast<QGCustomClip*>(parentItem());
-    if (parentClip) {
-        QGIViewClip* parentView = dynamic_cast<QGIViewClip*>(parentClip->parentItem());
-        TechDraw::DrawViewClip* parentFeat = dynamic_cast<TechDraw::DrawViewClip*>(parentView->getViewObject());
-        double newY = parentFeat->Height.getValue() - y;
-        return newY;
-    } else {
-        Base::Console().Log("Logic Error - getYInClip called for child (%s) not in Clip\n",getViewName());
-    }
-    return 0;
-}
-
-void QGIView::updateView(bool update)
-{
-    if (update ||
-        getViewObject()->X.isTouched() ||
-        getViewObject()->Y.isTouched()) {
-        double featX = getViewObject()->X.getValue();
-        double featY = getViewObject()->Y.getValue();
-        setPosition(featX,featY);
-    }
-
-    if (update ||
-        getViewObject()->Rotation.isTouched()) {
-        //NOTE: QPainterPaths have to be rotated individually. This transform handles everything else.
-        double rot = getViewObject()->Rotation.getValue();
-        QPointF centre = boundingRect().center();
-        setTransform(QTransform().translate(centre.x(), centre.y()).rotate(-rot).translate(-centre.x(), -centre.y()));
-    }
-
-    if (update)
-        QGraphicsItem::update();
-}
-
-const char * QGIView::getViewName() const
-{
-    return viewName.c_str();
-}
-
-TechDraw::DrawView * QGIView::getViewObject() const
-{
-     return viewObj;
-}
-
-void QGIView::setViewFeature(TechDraw::DrawView *obj)
-{
-    if(obj == 0)
-        return;
-
-    viewObj = obj;
-    viewName = obj->getNameInDocument();
-
-    // Set the QGIGroup initial position based on the DrawView
-    float x = obj->X.getValue();
-    float y = obj->Y.getValue();
-    setPosition(x, y);
-
-    Q_EMIT dirty();
-}
-
 void QGIView::toggleCache(bool state)
 {
-    // TODO: huh?  IR  //temp for devl. chaching was hiding problems WF
+    // TODO temp for devl. chaching was hiding problems WF
     setCacheMode((state)? NoCache : NoCache);
 }
-
 
 void QGIView::toggleBorder(bool state)
 {
     borderVisible = state;
     drawBorder();
 }
+
+// TODO: Do we want to move the label drawing stuff up into GIBase?
 void QGIView::drawBorder()
 {
     if (!borderVisible) {
         return;
     }
 
-    //double margin = 2.0;
     prepareGeometryChange();
     m_label->hide();
     m_border->hide();
@@ -345,25 +176,14 @@ void QGIView::drawBorder()
     m_border->show();
 }
 
-void QGIView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
-{
-    QStyleOptionGraphicsItem myOption(*option);
-    myOption.state &= ~QStyle::State_Selected;
-
-    if(!borderVisible){
-         m_label->hide();
-         m_border->hide();
-    }
-    QGraphicsItemGroup::paint(painter, &myOption, widget);
-}
-
 QRectF QGIView::customChildrenBoundingRect() {
     QList<QGraphicsItem*> children = childItems();
-    int dimItemType = QGraphicsItem::UserType + 106;
+    int dimItemType = QGraphicsItem::UserType + 106;  // TODO: Magic number warning
     QRectF result;
     for (QList<QGraphicsItem*>::iterator it = children.begin(); it != children.end(); ++it) {
         if ((*it)->type() >= QGraphicsItem::UserType) {
-            if ((*it)->type() != dimItemType) {                         //Dimensions don't count towards bRect
+            // Dimensions don't count towards bRect
+            if ((*it)->type() != dimItemType) {
                 result = result.united((*it)->boundingRect());
             }
         }
@@ -371,9 +191,18 @@ QRectF QGIView::customChildrenBoundingRect() {
     return result;
 }
 
-void _debugRect(char* text, QRectF r) {
-    Base::Console().Message("TRACE - %s - rect: (%.3f,%.3f) x (%.3f,%.3f)\n",text,
-                            r.left(),r.top(),r.right(),r.bottom());
+QVariant QGIView::itemChange(GraphicsItemChange change, const QVariant &value)
+{
+    if (change == ItemSelectedHasChanged && scene()) {
+        if(isSelected()) {
+            m_colCurrent = m_colSel;
+        } else {
+            m_colCurrent = m_colNormal;
+        }
+        drawBorder();
+    }
+
+    return GIBase::itemChange(change, value);
 }
 
 #include "moc_QGIView.cpp"
