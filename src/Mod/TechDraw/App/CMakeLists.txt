@@ -16,6 +16,7 @@ include_directories(
     ${PYTHON_INCLUDE_DIRS}
     ${XercesC_INCLUDE_DIRS}
     ${QT_QTCORE_INCLUDE_DIR}
+    ${QT_QTGUI_INCLUDE_DIR}
 )
 link_directories(${OCC_LIBRARY_DIR})
 
@@ -23,8 +24,18 @@ set(TechDrawLIBS
     Measure
     Part
     FreeCADApp
-    ${QT_LIBRARIES}
 )
+
+if(QT_QTGUI_LIBRARY)
+    list(APPEND TechDrawLIBS ${QT_QTGUI_LIBRARY})
+
+else(QT_QTGUI_LIBRARY)
+    # TODO: Try to get this to a point where we can compile a reduced-
+    # functionality version of App that doesn't need QGraphics stuff.
+    message(SEND_ERROR
+            "QT_QTGUI_LIBRARY was not found - can't use TechDraw without it.")
+
+endif(QT_QTGUI_LIBRARY)
 
 generate_from_xml(DrawPagePy)
 generate_from_xml(DrawViewPy)
