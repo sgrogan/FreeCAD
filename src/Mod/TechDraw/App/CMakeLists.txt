@@ -26,16 +26,16 @@ set(TechDrawLIBS
     FreeCADApp
 )
 
-if(QT_QTGUI_LIBRARY)
-    list(APPEND TechDrawLIBS ${QT_QTGUI_LIBRARY})
+if(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
+    list(APPEND TechDrawLIBS ${QT_QTGUI_LIBRARY} ${QT_QTSVG_LIBRARY})
 
-else(QT_QTGUI_LIBRARY)
+else(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
     # TODO: Try to get this to a point where we can compile a reduced-
     # functionality version of App that doesn't need QGraphics stuff.
     message(SEND_ERROR
-            "QT_QTGUI_LIBRARY was not found - can't use TechDraw without it.")
+            "QT_QTGUI_LIBRARY or QT_QTSVG_LIBRARY not found - can't use TechDraw.")
 
-endif(QT_QTGUI_LIBRARY)
+endif(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
 
 generate_from_xml(DrawPagePy)
 generate_from_xml(DrawViewPy)
@@ -54,6 +54,7 @@ generate_from_xml(DrawProjGroupItemPy)
 
 SET(DrawGI_MOC_HDRS
     GIBase.h
+    GIPage.h
    ) # end of SET(DrawGI_MOC_HDRS
 
 fc_wrap_cpp(TechDraw_MOC_SRCS ${DrawGI_MOC_HDRS})
@@ -61,6 +62,7 @@ SOURCE_GROUP("TechDraw Moc" FILES ${TechDraw_MOC_SRCS})
 
 SET(DrawGI_SRCS
     GIBase.cpp
+    GIPage.cpp
     ${DrawGI_MOC_HDRS}
    ) # end of SET(QGI_SRCS
 

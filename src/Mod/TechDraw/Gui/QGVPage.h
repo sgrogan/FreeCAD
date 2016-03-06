@@ -23,13 +23,12 @@
 #ifndef DRAWINGGUI_CANVASVIEW_H
 #define DRAWINGGUI_CANVASVIEW_H
 
-#include <QGraphicsView>
+#include "../App/GIPage.h"
 
 namespace TechDraw {
 class DrawViewPart;
 class DrawProjGroup;
 class DrawViewDimension;
-class DrawPage;
 class DrawTemplate;
 class DrawViewAnnotation;
 class DrawViewSymbol;
@@ -43,16 +42,15 @@ class QGIView;
 class QGIViewDimension;
 class QGITemplate;
 class QGIHatch;
-class ViewProviderPage;
 
-class TechDrawGuiExport QGVPage : public QGraphicsView
+class TechDrawGuiExport QGVPage : public TechDraw::GIPage
 {
     Q_OBJECT
 
 public:
     enum RendererType { Native, OpenGL, Image };
 
-    QGVPage(ViewProviderPage *vp, QWidget *parent = 0);
+    QGVPage(TechDraw::DrawPage *page, QWidget *parent = 0);
     ~QGVPage();
 
     void setRenderer(RendererType type = Native);
@@ -83,7 +81,7 @@ public:
 
     void toggleEdit(bool enable);
 
-    /// Renders the page to SVG with filename.
+    /// Overrides GIPage::saveSvg() so we don't save GUI-only stuff
     void saveSvg(QString filename);
 
 public Q_SLOTS:
@@ -108,12 +106,10 @@ private:
     RendererType m_renderer;
 
     bool drawBkg;
-    TechDraw::DrawPage *pageFeat;
     QGraphicsRectItem *m_backgroundItem;
     QGraphicsRectItem *m_outlineItem;
     QBrush *bkgBrush;
     QImage m_image;
-    ViewProviderPage *pageGui;
 };
 
 } // namespace MDIViewPageGui

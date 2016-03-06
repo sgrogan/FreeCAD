@@ -33,7 +33,6 @@
 # include <QMouseEvent>
 # include <QPainter>
 # include <QPaintEvent>
-# include <QSvgGenerator>
 # include <QWheelEvent>
 # include <strstream>
 # include <cmath>
@@ -45,7 +44,6 @@
 #include <Gui/WaitCursor.h>
 
 #include <Mod/TechDraw/App/Geometry.h>
-#include <Mod/TechDraw/App/DrawPage.h>
 #include <Mod/TechDraw/App/DrawTemplate.h>
 #include <Mod/TechDraw/App/DrawSVGTemplate.h>
 #include <Mod/TechDraw/App/DrawParametricTemplate.h>
@@ -75,21 +73,17 @@
 
 using namespace TechDrawGui;
 
-QGVPage::QGVPage(ViewProviderPage *vp, QWidget *parent)
-    : QGraphicsView(parent)
-    , pageTemplate(0)
-    , m_renderer(Native)
-    , drawBkg(true)
-    , m_backgroundItem(0)
-    , m_outlineItem(0)
-    , pageGui(0)
+QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
+    : GIPage(page, parent),
+      pageTemplate(0),
+      m_renderer(Native),
+      drawBkg(true),
+      m_backgroundItem(0),
+      m_outlineItem(0)
 {
-    assert(vp);
-    pageGui = vp;
-    const char* name = vp->getPageObject()->getNameInDocument();
+    const char *name = m_page->getNameInDocument();
     setObjectName(QString::fromLocal8Bit(name));
 
-    setScene(new QGraphicsScene(this));
     //setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     setCacheMode(QGraphicsView::CacheBackground);
     setTransformationAnchor(AnchorUnderMouse);
@@ -127,22 +121,18 @@ void QGVPage::drawBackground(QPainter *p, const QRectF &)
     p->save();
     p->resetTransform();
 
-
     p->setBrush(*bkgBrush);
     p->drawRect(viewport()->rect());
 
-    if(!pageGui) {
-        return;
-    }
-
     // Default to A3 landscape, though this is currently relevant
     // only for opening corrupt docs, etc.
+    // TODO: Move this higher up - probably never relevant, but ugly to have constants this low down
     float pageWidth = 420,
           pageHeight = 297;
 
-    if ( pageGui->getPageObject()->hasValidTemplate() ) {
-        pageWidth = pageGui->getPageObject()->getPageWidth();
-        pageHeight = pageGui->getPageObject()->getPageHeight();
+    if ( m_page->hasValidTemplate() ) {
+        pageWidth = m_page->getPageWidth();
+        pageHeight = m_page->getPageHeight();
     }
 
     // Draw the white page
@@ -155,7 +145,6 @@ void QGVPage::drawBackground(QPainter *p, const QRectF &)
     p->drawRect(poly.boundingRect());
 
     p->restore();
-
 }
 
 int QGVPage::addView(QGIView * view) {
@@ -355,8 +344,8 @@ void QGVPage::setPageFeature(TechDraw::DrawPage *page)
     // TODO verify if the pointer should even be used. Not really safe
     pageFeat = page;
 
-    float pageWidth  = pageGui->getPageObject()->getPageWidth();
-    float pageHeight = pageGui->getPageObject()->getPageHeight();
+    float pageWidth  = m_page->getPageWidth();
+    float pageHeight = m_page->getPageHeight();
 
     QRectF paperRect(0, -pageHeight, pageWidth, pageHeight);
 
@@ -491,49 +480,15 @@ void QGVPage::toggleEdit(bool enable)
 
 void QGVPage::saveSvg(QString filename)
 {
-    // TODO: We only have pageGui because constructor gets passed a view provider...
-    TechDraw::DrawPage *page( pageGui->getPageObject() );
-
-    const QString docName( QString::fromUtf8(page->getDocument()->getName()) );
-    const QString pageName( QString::fromUtf8(page->getNameInDocument()) );
-    QString svgDescription = tr("Drawing page: ") +
-                             pageName +
-                             tr(" exported from FreeCAD document: ") +
-                             docName;
-
-    //Base::Console().Message("TRACE - saveSVG - page width: %d height: %d\n",width,height);    //A4 297x210
-    QSvgGenerator svgGen;
-    svgGen.setFileName(filename);
-    svgGen.setSize(QSize((int) page->getPageWidth(), (int)page->getPageHeight()));
-    svgGen.setViewBox(QRect(0, 0, page->getPageWidth(), page->getPageHeight()));
-    //TODO: Exported Svg file is not quite right. <svg width="301.752mm" height="213.36mm" viewBox="0 0 297 210"... A4: 297x210
-    //      Page too small (A4 vs Letter? margins?)
-    //TODO: text in Qt is in mm (actually scene units).  text in SVG is points(?). fontsize in export file is too small by 1/2.835.
-    //      resize all textItem before export?
-    //      postprocess generated file to mult all font-size attrib by 2.835 to get pts?
-    //      duplicate all textItems and only show the appropriate one for screen/print vs export?
-    svgGen.setResolution(25.4000508);    // mm/inch??  docs say this is DPI
-    //svgGen.setResolution(600);    // resulting page is ~12.5x9mm
-    //svgGen.setResolution(96);     // page is ~78x55mm
-    svgGen.setTitle(QObject::tr("FreeCAD SVG Export"));
-    svgGen.setDescription(svgDescription);
-
+    // fiddle cache, cosmetic lines, vertices, etc
     Gui::Selection().clearSelection();
+    toggleEdit(false);
 
-    toggleEdit(false);             //fiddle cache, cosmetic lines, vertices, etc
-    scene()->update();
-
-    Gui::Selection().clearSelection();
-    QPainter p;
-
-    p.begin(&svgGen);
-    scene()->render(&p);
-    p.end();
+    GIPage::saveSvg(filename);
 
     toggleEdit(true);
-    scene()->update();
-}
 
+}
 
 void QGVPage::paintEvent(QPaintEvent *event)
 {

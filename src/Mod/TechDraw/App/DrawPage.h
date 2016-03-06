@@ -28,6 +28,7 @@
 #include "App/DocumentObjectGroup.h"
 #include "App/PropertyStandard.h"
 #include "App/PropertyFile.h"
+#include "App/Document.h"
 //#include "App/FeaturePython.h"
 
 namespace TechDraw

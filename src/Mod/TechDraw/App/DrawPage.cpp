@@ -35,7 +35,6 @@
 #include <Base/Parameter.h>
 
 #include <App/Application.h>
-#include <App/Document.h>
 #include <boost/regex.hpp>
 
 #include "DrawPage.h"
