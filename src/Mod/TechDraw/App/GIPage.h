@@ -26,20 +26,54 @@
 #include <QGraphicsView>
 
 #include "DrawPage.h"
+#include "GIBase.h"
 
 namespace TechDraw {
+
+class DrawTemplate;
 
 class TechDrawExport GIPage : public QGraphicsView
 {
     Q_OBJECT
 public:
     GIPage(DrawPage *page, QWidget *parent = 0);
-    ~GIPage() = default;
+    virtual ~GIPage();
 
     /// Renders the page to SVG with filename.
     virtual void saveSvg(QString filename);
 
+    /// Called after construction to attach all views that go on this page
+    void attachViews();
+
+    /// Getter for the views vector
+    // TODO: Not convinced that the MDIView should be using this...
+    const std::vector<GIBase *> & getViews() const { return views; }
+
+    /// Setter for the views vector
+    // TODO: Not convinced that the MDIView should be using this...
+    void setViews(const std::vector<GIBase *> &view) {views = view; }
+
+    /// Adds a new view to the page
+    /*!
+     * \return the size of the views vector.
+     */
+    int addView(GIBase *view);
+
+    GIBase * findView(App::DocumentObject *obj) const;
+    GIBase * findParent(GIBase *) const;
+
 protected:
+    /// Attaches view represented by obj to this
+    virtual int attachView(App::DocumentObject *obj);
+    
+    /// As attachView (TODO: Perhaps roll this in to attachView?)
+    virtual void attachTemplate(DrawTemplate *obj);
+
+    /// The views that belong on this page
+    std::vector<GIBase *> views;
+
+    /// Pointer to DrawPage we are attached to
+    // TODO: Replace this with a smart pointer
     DrawPage *m_page;    
 };  // end class GIPage
 

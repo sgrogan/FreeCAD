@@ -30,6 +30,8 @@
 #include <QGraphicsView>
 #include <QPrinter>
 
+#include "QGIView.h"
+
 QT_BEGIN_NAMESPACE
 class QSlider;
 class QAction;
@@ -41,9 +43,11 @@ class QSvgWidget;
 class QScrollArea;
 class QPrinter;
 QT_END_NAMESPACE
+
 namespace TechDraw {
-class DrawPage;
-class DrawTemplate;
+    class DrawPage;
+    class DrawTemplate;
+    class GIBase;
 }
 
 namespace TechDrawGui
@@ -51,7 +55,6 @@ namespace TechDrawGui
 
 class ViewProviderPage;
 class QGVPage;
-class QGIView;
 
 class TechDrawGuiExport MDIViewPage : public Gui::MDIView, public Gui::SelectionObserver
 {
@@ -75,7 +78,6 @@ public:
     void clearSelection();
     void blockSelection(bool isBlocked);
 
-    void attachTemplate(TechDraw::DrawTemplate *obj);
     void updateTemplate(bool force = false);
     void updateDrawing(bool force = false);
 
@@ -97,12 +99,10 @@ protected:
     void findMissingViews( const std::vector<App::DocumentObject*> &list, std::vector<App::DocumentObject*> &missing);
     bool hasQView(App::DocumentObject *obj);
     bool orphanExists(const char *viewName, const std::vector<App::DocumentObject*> &list);
-    int attachView(App::DocumentObject *obj);
     void contextMenuEvent(QContextMenuEvent *event);
     void closeEvent(QCloseEvent*);
     void findPrinterSettings(const QString&);
     QPrinter::PageSize getPageSize(int w, int h) const;
-    void setDimensionGroups(void);
 
 private:
     QAction *m_nativeAction;
@@ -124,7 +124,7 @@ private:
 
     bool m_frameState;
 
-    QList<QGIView *> deleteItems;
+    QList<TechDraw::GIBase *> deleteItems;
 };
 
 

@@ -29,13 +29,14 @@
 # include <iterator>
 #endif
 
+#include <boost/regex.hpp>
+
 #include <Base/Exception.h>
 #include <Base/Console.h>
 #include <Base/FileInfo.h>
 #include <Base/Parameter.h>
 
 #include <App/Application.h>
-#include <boost/regex.hpp>
 
 #include "DrawPage.h"
 #include "DrawView.h"
@@ -48,6 +49,7 @@
 
 #include "DrawPagePy.h"  // generated from DrawPagePy.xml
 
+#include <QDebug> // TODO: Remove this when done debugging
 using namespace TechDraw;
 using namespace std;
 
@@ -62,8 +64,10 @@ const char* DrawPage::ProjectionTypeEnums[] = { "First Angle",
                                                 "Third Angle",
                                                 NULL };
 
-DrawPage::DrawPage(void)
+DrawPage::DrawPage(void) :
+    giPage(nullptr)
 {
+    qDebug() << "Constructing DrawPage";
     static const char *group = "Page";
 
     ADD_PROPERTY_TYPE(Template, (0), group, (App::PropertyType)(App::Prop_None), "Attached Template");
@@ -230,6 +234,24 @@ const char * DrawPage::getPageOrientation() const
         }
     }
     throw Base::Exception("Template not set for Page");
+}
+
+void DrawPage::registerGi(GIPage *newGiPage)
+{
+    assert(giPage == nullptr);
+    giPage = newGiPage;
+}
+
+void DrawPage::deregisterGi(GIPage *oldGiPage)
+{
+// TODO: Put some thought in to lifetime management - this seems to cause problems on closing FreeCAD
+//    assert(giPage == oldGiPage);
+    giPage = nullptr;
+}
+
+GIPage * DrawPage::getGi() const
+{
+    return giPage;
 }
 
 int DrawPage::addView(App::DocumentObject *docObj)

@@ -50,6 +50,7 @@
 #include <Mod/TechDraw/App/DrawViewCollection.h>
 #include <Mod/TechDraw/App/DrawViewDimension.h>
 #include <Mod/TechDraw/App/DrawProjGroup.h>
+#include <Mod/TechDraw/App/DrawViewSection.h>
 #include <Mod/TechDraw/App/DrawViewPart.h>
 #include <Mod/TechDraw/App/DrawViewAnnotation.h>
 #include <Mod/TechDraw/App/DrawViewSymbol.h>
@@ -71,6 +72,8 @@
 #include "ZVALUE.h"
 #include "QGVPage.h"
 
+#include <QDebug> // TODO: Remove this
+
 using namespace TechDrawGui;
 
 QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
@@ -81,6 +84,8 @@ QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
       m_backgroundItem(0),
       m_outlineItem(0)
 {
+    qDebug() << "Constructing QGVPage";
+
     const char *name = m_page->getNameInDocument();
     setObjectName(QString::fromLocal8Bit(name));
 
@@ -107,6 +112,7 @@ QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
 
     resetCachedContent();
 }
+
 QGVPage::~QGVPage()
 {
     delete bkgBrush;
@@ -145,31 +151,6 @@ void QGVPage::drawBackground(QPainter *p, const QRectF &)
     p->drawRect(poly.boundingRect());
 
     p->restore();
-}
-
-int QGVPage::addView(QGIView * view) {
-    views.push_back(view);
-
-    // Find if it belongs to a parent
-    QGIView *parent = 0;
-    parent = findParent(view);
-
-    QPointF viewPos(view->getViewObject()->X.getValue(),
-                    view->getViewObject()->Y.getValue() * -1);
-
-    if(parent) {
-        // Transfer the child vierw to the parent
-        QPointF posRef(0.,0.);
-
-        QPointF mapPos = view->mapToItem(parent, posRef);              //setPos is called later.  this doesn't do anything?
-        view->moveBy(-mapPos.x(), -mapPos.y());
-
-        parent->addToGroup(view);
-    }
-
-    view->setPos(viewPos);
-
-    return views.size();
 }
 
 QGIView * QGVPage::addViewPart(TechDraw::DrawViewPart *part)
@@ -257,11 +238,10 @@ QGIView * QGVPage::addViewDimension(TechDraw::DrawViewDimension *dim)
     views.push_back(dimGroup);
 
     // Find if it belongs to a parent
-    QGIView *parent = 0;
-    parent = findParent(dimGroup);
+    auto parent( dynamic_cast<QGIView *>(findParent(dimGroup)) );
 
     if(parent) {
-        addDimToParent(dimGroup,parent);
+        addDimToParent(dimGroup, parent);
     }
 
     return dimGroup;
@@ -278,64 +258,6 @@ void QGVPage::addDimToParent(QGIViewDimension* dim, QGIView* parent)
     dim->setZValue(ZVALUE::DIMENSION);
 }
 
-QGIView * QGVPage::findView(App::DocumentObject *obj) const
-{
-  if(scene()) {
-    const std::vector<QGIView *> qviews = views;
-    for(std::vector<QGIView *>::const_iterator it = qviews.begin(); it != qviews.end(); ++it) {
-          TechDraw::DrawView *fview = (*it)->getViewObject();
-          if(fview && strcmp(obj->getNameInDocument(), fview->getNameInDocument()) == 0)
-              return *it;
-      }
-  }
-    return 0;
-}
-
-QGIView * QGVPage::findParent(QGIView *view) const
-{
-    const std::vector<QGIView *> qviews = views;
-    TechDraw::DrawView *myView = view->getViewObject();
-
-    //If type is dimension we check references first
-    TechDraw::DrawViewDimension *dim = 0;
-    dim = dynamic_cast<TechDraw::DrawViewDimension *>(myView);
-
-    if(dim) {
-        std::vector<App::DocumentObject *> objs = dim->References.getValues();
-
-        if(objs.size() > 0) {
-            std::vector<App::DocumentObject *> objs = dim->References.getValues();
-            // Attach the dimension to the first object's group
-            for(std::vector<QGIView *>::const_iterator it = qviews.begin(); it != qviews.end(); ++it) {
-                TechDraw::DrawView *viewObj = (*it)->getViewObject();
-                if(strcmp(viewObj->getNameInDocument(), objs.at(0)->getNameInDocument()) == 0) {
-                    return *it;
-                }
-            }
-        }
-    }
-
-    // Check if part of view collection
-    for(std::vector<QGIView *>::const_iterator it = qviews.begin(); it != qviews.end(); ++it) {
-        QGIViewCollection *grp = 0;
-        grp = dynamic_cast<QGIViewCollection *>(*it);
-        if(grp) {
-            TechDraw::DrawViewCollection *collection = 0;
-            collection = dynamic_cast<TechDraw::DrawViewCollection *>(grp->getViewObject());
-            if(collection) {
-                std::vector<App::DocumentObject *> objs = collection->Views.getValues();
-                for( std::vector<App::DocumentObject *>::iterator it = objs.begin(); it != objs.end(); ++it) {
-                    if(strcmp(myView->getNameInDocument(), (*it)->getNameInDocument()) == 0)
-
-                        return grp;
-                }
-            }
-        }
-     }
-
-    // Not found a parent
-    return 0;
-}
 
 void QGVPage::setPageFeature(TechDraw::DrawPage *page)
 {
@@ -480,6 +402,7 @@ void QGVPage::toggleEdit(bool enable)
 
 void QGVPage::saveSvg(QString filename)
 {
+    qDebug() << "In QGVPage::saveSvg()";//TODO: Remove this
     // fiddle cache, cosmetic lines, vertices, etc
     Gui::Selection().clearSelection();
     toggleEdit(false);
@@ -531,6 +454,56 @@ void QGVPage::mouseReleaseEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseReleaseEvent(event);
     viewport()->setCursor(Qt::ArrowCursor);
+}
+
+int QGVPage::attachView(App::DocumentObject *obj)
+{
+    qDebug() << "in QGVPage::attachView";
+    
+    QGIView *qview = 0;
+    if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewSection::getClassTypeId()) ) {
+        TechDraw::DrawViewSection *viewSect = dynamic_cast<TechDraw::DrawViewSection *>(obj);
+        qview = addViewSection(viewSect);
+    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawViewPart::getClassTypeId()) ) {
+        TechDraw::DrawViewPart *viewPart = dynamic_cast<TechDraw::DrawViewPart *>(obj);
+        qview = addViewPart(viewPart);
+    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawProjGroup::getClassTypeId()) ) {
+        TechDraw::DrawProjGroup *view = dynamic_cast<TechDraw::DrawProjGroup *>(obj);
+        qview = addProjectionGroup(view);
+    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawViewCollection::getClassTypeId()) ) {
+        TechDraw::DrawViewCollection *collection = dynamic_cast<TechDraw::DrawViewCollection *>(obj);
+        qview = addDrawView(collection);
+    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewDimension::getClassTypeId()) ) {
+        TechDraw::DrawViewDimension *viewDim = dynamic_cast<TechDraw::DrawViewDimension *>(obj);
+        qview = addViewDimension(viewDim);
+    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewAnnotation::getClassTypeId()) ) {
+        TechDraw::DrawViewAnnotation *viewDim = dynamic_cast<TechDraw::DrawViewAnnotation *>(obj);
+        qview = addDrawViewAnnotation(viewDim);
+    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewSymbol::getClassTypeId()) ) {
+        TechDraw::DrawViewSymbol *viewSym = dynamic_cast<TechDraw::DrawViewSymbol *>(obj);
+        qview = addDrawViewSymbol(viewSym);
+    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
+        TechDraw::DrawViewClip *viewClip = dynamic_cast<TechDraw::DrawViewClip *>(obj);
+        qview = addDrawViewClip(viewClip);
+    } else {
+        Base::Console().Log("Logic Error - Unknown view type in MDIViewPage::attachView\n");
+    }
+
+    if(!qview)
+        return -1;
+    else
+        return views.size();
+}
+
+void QGVPage::attachTemplate(TechDraw::DrawTemplate *obj)
+{
+    setPageTemplate(obj);
+
+    double width  =  obj->Width.getValue();
+    double height =  obj->Height.getValue();
+
+    //the +/- 1 is because of the way the template is define???
+    scene()->setSceneRect(QRectF(-1., -height, width+1., height));
 }
 
 #include "moc_QGVPage.cpp"

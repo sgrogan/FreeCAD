@@ -34,6 +34,31 @@
 namespace TechDraw
 {
 
+class GIPage;   //TODO Remove this (GIPage.h includes this file...)
+
+/*!
+ * Relationship between DrawPage and GIPage (+children):
+ *
+ * Doing anything useful with TechDraw requires using QGraphicsScene and
+ * QGraphicsItems, but it's not safe to assume that we will always have access
+ * to those classes (for example, if built with BUILD_GUI=0).  We do however
+ * always want to support loading/saving FreeCAD documents that contain
+ * TechDraw items, so we need to always build classes that contain Properties.
+ *
+ * The current model involves three layers, where one is built regardless of
+ * whether we have access to Qt, then the other two are intended for varying
+ * levels of interaction with QGraphics.  The GUI/non-GUI distinction is an
+ * an attempt at following the App/Gui split in the rest of FreeCAD, and
+ * allows us to use the QGraphics via command line with minimal overhead.
+ *
+ * DrawPage - Contains Properties
+ * GIPage - Handles non-GUI aspects of QGraphics
+ * QGVPage - Derived from GIPage, adds GUI interaction
+ *
+ * The intent is to have only one GIPage-derived instance per DrawPage.  To
+ * facilitate this, we have a DrawPage* stored by GIPage, and DrawPage contains
+ * registerGi(), deregisterGi(), and getGi() methods.
+ */
 class TechDrawExport DrawPage: public App::DocumentObject
 {
     PROPERTY_HEADER(TechDraw::DrawPage);
@@ -73,22 +98,35 @@ public:
      * \return boolean answer to the question: "Doest thou have a valid template?"
      */
     bool hasValidTemplate() const;
+
     /// Returns width of the template
     /*!
      * \throws Base::Exception if no template is loaded.
      */
     double getPageWidth() const;
+
     /// Returns height of the template
     /*!
      * \throws Base::Exception if no template is loaded.
      */
     double getPageHeight() const;
+
     const char* getPageOrientation() const;
 
+    /// Stores pointer to the GIPage that refers to this DrawPage
+    void registerGi(GIPage *newGiPage);
+
+    /// Clears pointer to the outgoing GIPage that referred to this DrawPage
+    void deregisterGi(GIPage *oldGiPage);
+
+    /// Returns the registered GIPage if there was one
+    GIPage* getGi() const;
 protected:
     void onBeforeChange(const App::Property* prop);
     void onChanged(const App::Property* prop);
     virtual void onDocumentRestored();
+
+    GIPage *giPage;
 
 private:
     static const char* ProjectionTypeEnums[];

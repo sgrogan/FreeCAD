@@ -24,6 +24,7 @@
 #define DRAWINGGUI_CANVASVIEW_H
 
 #include "../App/GIPage.h"
+#include "QGIView.h"
 
 namespace TechDraw {
 class DrawViewPart;
@@ -38,7 +39,6 @@ class DrawHatch;
 
 namespace TechDrawGui
 {
-class QGIView;
 class QGIViewDimension;
 class QGITemplate;
 class QGIHatch;
@@ -54,7 +54,7 @@ public:
     ~QGVPage();
 
     void setRenderer(RendererType type = Native);
-    void drawBackground(QPainter *p, const QRectF &rect);
+    void drawBackground(QPainter *p, const QRectF &rect) override;
 
     QGIView * addViewDimension(TechDraw::DrawViewDimension *dim);
     QGIView * addProjectionGroup(TechDraw::DrawProjGroup *view);
@@ -66,13 +66,7 @@ public:
     QGIView * addDrawViewSymbol(TechDraw::DrawViewSymbol *view);
     QGIView * addDrawViewClip(TechDraw::DrawViewClip *view);
 
-    QGIView * findView(App::DocumentObject *obj) const;
-    QGIView * findParent(QGIView *) const;
-
     void addDimToParent(QGIViewDimension* dim, QGIView* parent);
-    const std::vector<QGIView *> & getViews() const { return views; }
-    int addView(QGIView * view);
-    void setViews(const std::vector<QGIView *> &view) {views = view; }
     void setPageFeature(TechDraw::DrawPage *page);
     void setPageTemplate(TechDraw::DrawTemplate *pageTemplate);
 
@@ -81,8 +75,8 @@ public:
 
     void toggleEdit(bool enable);
 
-    /// Overrides GIPage::saveSvg() so we don't save GUI-only stuff
-    void saveSvg(QString filename);
+    /// Augments GIPage::saveSvg() so we don't save GUI-only stuff
+    void saveSvg(QString filename) override;
 
 public Q_SLOTS:
     void setHighQualityAntialiasing(bool highQualityAntialiasing);
@@ -90,17 +84,22 @@ public Q_SLOTS:
     void setViewOutline(bool enable);
 
 protected:
-    void wheelEvent(QWheelEvent *event);
-    void paintEvent(QPaintEvent *event);
-    void enterEvent(QEvent *event);
-    void mousePressEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
+    void enterEvent(QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
+    /// Attaches view represented by obj to this
+    int attachView(App::DocumentObject *obj) override;
+
+    /// As attachView (TODO: Perhaps roll this in to attachView?)
+    virtual void attachTemplate(TechDraw::DrawTemplate *obj) override;
 
     static QColor SelectColor;
     static QColor PreselectColor;
 
     QGITemplate *pageTemplate;
-    std::vector<QGIView *> views;
 
 private:
     RendererType m_renderer;

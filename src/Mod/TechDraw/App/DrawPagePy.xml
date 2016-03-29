@@ -33,6 +33,11 @@
         <UserDocu>Return the orientation of this page</UserDocu>
       </Documentation>
     </Methode>
+    <Methode Name="saveSvg">
+      <Documentation>
+        <UserDocu>Saves the page as an SVG file.</UserDocu>
+      </Documentation>
+    </Methode>
     <CustomAttributes />
   </PythonExport>
 </GenerateModel>

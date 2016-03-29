@@ -11,6 +11,8 @@
 #include "DrawPagePy.h"
 #include "DrawPagePy.cpp"
 
+#include "GIPage.h"
+
 using namespace TechDraw;
 
 // returns a string which represents the object e.g. when printed in python
@@ -62,6 +64,16 @@ PyObject* DrawPagePy::getPageHeight(PyObject *args)
 PyObject* DrawPagePy::getPageOrientation(PyObject *args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "Not yet implemented");
+    return 0;
+}
+
+PyObject* DrawPagePy::saveSvg(PyObject *args)
+{
+    auto drawPage(getDrawPagePtr());
+    if (drawPage && drawPage->getGi()) {
+        drawPage->getGi()->saveSvg(QString::fromAscii("/Users/irees/Desktop/fromPython.svg"));
+        return PyBool_FromLong(true);
+    }
     return 0;
 }
 
