@@ -82,7 +82,7 @@ private:
     QColor m_colSel;
 };
 
-class TechDrawGuiExport QGIViewDimension : public QGIView
+class TechDrawGuiExport QGIViewDimension : public QObject, public QGIView
 {
     Q_OBJECT
 
@@ -98,9 +98,6 @@ public:
     virtual void drawBorder();
     virtual void updateView(bool update = false);
     virtual void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget = 0 );
-
-Q_SIGNALS:
-    void dirty();
 
 public Q_SLOTS:
     void datumLabelDragged(void);

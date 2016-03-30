@@ -41,7 +41,7 @@ class DrawViewSymbol;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGIViewSymbol : public QGIView
+class TechDrawGuiExport QGIViewSymbol : public QObject, public QGIView
 {
     Q_OBJECT
 

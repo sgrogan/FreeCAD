@@ -32,9 +32,8 @@
 
 namespace TechDraw {
 
-class TechDrawExport GIBase : public QObject, public QGraphicsItemGroup
+class TechDrawExport GIBase : public QGraphicsItemGroup
 {
-    Q_OBJECT
 public:
     GIBase(const QPoint &pos, QGraphicsScene *scene);
     virtual ~GIBase() {};
@@ -63,9 +62,6 @@ public:
     virtual void paint( QPainter *painter,
                         const QStyleOptionGraphicsItem *option,
                         QWidget *widget = nullptr );
-
-Q_SIGNALS:
-    void dirty();
 
 protected:
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);

@@ -53,9 +53,6 @@ public:
     void draw();
     virtual void updateView(bool update = false);
 
-Q_SIGNALS:
-  void dirty();
-
 protected:
   TechDraw::DrawParametricTemplate * getParametricTemplate();
 

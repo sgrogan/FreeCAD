@@ -205,4 +205,3 @@ QVariant QGIView::itemChange(GraphicsItemChange change, const QVariant &value)
     return GIBase::itemChange(change, value);
 }
 
-#include "moc_QGIView.cpp"

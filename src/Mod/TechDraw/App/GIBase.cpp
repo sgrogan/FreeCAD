@@ -93,8 +93,6 @@ void GIBase::setViewFeature(TechDraw::DrawView *obj)
     float x = obj->X.getValue();
     float y = obj->Y.getValue();
     setPosition(x, y);
-
-    Q_EMIT dirty();
 }
 
 DrawView * GIBase::getViewObject() const
@@ -198,6 +196,4 @@ QVariant GIBase::itemChange(GraphicsItemChange change, const QVariant &value)
 
     return QGraphicsItemGroup::itemChange(change, value);
 }
-
-#include "moc_GIBase.cpp"
 

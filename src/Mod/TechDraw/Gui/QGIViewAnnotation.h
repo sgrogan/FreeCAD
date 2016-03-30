@@ -37,7 +37,7 @@ class DrawViewAnnotation;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGIViewAnnotation : public QGIView
+class TechDrawGuiExport QGIViewAnnotation : public QObject, public QGIView
 {
     Q_OBJECT
 

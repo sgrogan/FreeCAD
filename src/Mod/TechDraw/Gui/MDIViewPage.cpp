@@ -170,7 +170,12 @@ MDIViewPage::~MDIViewPage()
 {
   // Safely remove graphicview items that have built up TEMP SOLUTION
   for(auto it : deleteItems) {
-      it->deleteLater();
+      auto qObjPtr(dynamic_cast<QObject *>(it));
+      if (qObjPtr) {
+          qObjPtr->deleteLater();
+      } else {
+          delete it;
+      }
   }
   deleteItems.clear();
 
@@ -314,7 +319,7 @@ void MDIViewPage::preSelectionChanged(const QPoint &pos)
     } else {
             // Check if an edge was preselected
             //WF: sb View?
-        QGIView *view = qobject_cast<QGIView *>(obj);
+        QGIView *view = dynamic_cast<QGIView *>(obj);
 
         if(!view)
             return;

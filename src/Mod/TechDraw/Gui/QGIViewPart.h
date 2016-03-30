@@ -42,7 +42,7 @@ class DrawHatch;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGIViewPart : public QGIView
+class TechDrawGuiExport QGIViewPart : public QObject, public QGIView
 {
     Q_OBJECT
 
@@ -66,8 +66,7 @@ public:
     virtual QRectF boundingRect() const;
 
 Q_SIGNALS:
-    void selected(bool state);
-    void dirty();
+    void selected(bool state);  //TODO: Doesn't look like we ever connect to this?
 
 protected:
     QGIEdge * findRefEdge(int i);

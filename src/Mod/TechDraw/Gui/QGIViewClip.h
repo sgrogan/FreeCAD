@@ -37,7 +37,7 @@ class DrawViewPart;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGIViewClip : public QGIView
+class TechDrawGuiExport QGIViewClip : public QObject, public QGIView
 {
     Q_OBJECT
 
@@ -56,7 +56,6 @@ public:
 
 Q_SIGNALS:
     void selected(bool state);
-    void dirty();
 
 protected:
     void drawClip();

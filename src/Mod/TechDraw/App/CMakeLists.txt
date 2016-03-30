@@ -52,7 +52,6 @@ generate_from_xml(DrawProjGroupPy)
 generate_from_xml(DrawProjGroupItemPy)
 
 SET(DrawGI_MOC_HDRS
-    GIBase.h
     GIPage.h
    ) # end of SET(DrawGI_MOC_HDRS
 
@@ -60,6 +59,7 @@ fc_wrap_cpp(TechDraw_MOC_SRCS ${DrawGI_MOC_HDRS})
 SOURCE_GROUP("TechDraw Moc" FILES ${TechDraw_MOC_SRCS})
 
 SET(DrawGI_SRCS
+    GIBase.h
     GIBase.cpp
     GIPage.cpp
     ${DrawGI_MOC_HDRS}

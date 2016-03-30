@@ -85,4 +85,3 @@ void QGIViewCollection::updateView(bool update)
     return QGIView::updateView(update);
 }
 
-#include "moc_QGIViewCollection.cpp"

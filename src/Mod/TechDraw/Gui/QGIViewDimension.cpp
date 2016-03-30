@@ -229,7 +229,6 @@ void QGIViewDimension::setViewPartFeature(TechDraw::DrawViewDimension *obj)
 
     updateDim();
     draw();
-    Q_EMIT dirty();
 }
 
 void QGIViewDimension::select(bool state)
@@ -276,8 +275,6 @@ void QGIViewDimension::updateView(bool update)
     }
 
     draw();
-
-    Q_EMIT dirty();
 }
 
 void QGIViewDimension::updateDim()

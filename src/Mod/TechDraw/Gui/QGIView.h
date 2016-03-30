@@ -40,8 +40,6 @@ namespace TechDrawGui
 
 class TechDrawGuiExport QGIView : public TechDraw::GIBase
 {
-    Q_OBJECT
-
 public:
     QGIView(const QPoint &position, QGraphicsScene *scene);
     ~QGIView() = default;
@@ -56,7 +54,6 @@ public:
     virtual void paint( QPainter *painter,
                         const QStyleOptionGraphicsItem *option,
                         QWidget *widget = nullptr );
-
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 
 protected:

@@ -44,8 +44,6 @@ namespace TechDrawGui
 
 class TechDrawGuiExport  QGIViewCollection : public QGIView
 {
-    Q_OBJECT
-
 public:
     QGIViewCollection(const QPoint &position, QGraphicsScene *scene);
     ~QGIViewCollection();
@@ -55,9 +53,6 @@ public:
 
     virtual void updateView(bool update = false);
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
-
-Q_SIGNALS:
-  void dirty();
 
 protected:
   virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
