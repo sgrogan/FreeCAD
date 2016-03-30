@@ -32,6 +32,8 @@ namespace TechDraw {
 
 class DrawTemplate;
 
+// The intent here is to contain the QGraphicsScene and associated infrastructure,
+// so the QGraphicsView parentage will likely be moved out to QGIPage
 class TechDrawExport GIPage : public QGraphicsView
 {
 public:
