@@ -30,7 +30,6 @@
 #include "DrawViewDimension.h"
 
 #include "GIPage.h"
-
 #include <QDebug>   // TODO: Remove this
 using namespace TechDraw;
 
@@ -224,6 +223,4 @@ void GIPage::attachTemplate(TechDraw::DrawTemplate *obj)
 {
     assert(0);  // TODO: Implement this
 }
-
-#include "moc_GIPage.cpp"
 

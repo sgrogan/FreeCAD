@@ -78,6 +78,9 @@ public:
     /// Augments GIPage::saveSvg() so we don't save GUI-only stuff
     void saveSvg(QString filename) override;
 
+    /// Attaches view represented by obj to this
+    int attachView(App::DocumentObject *obj) override;
+
 public Q_SLOTS:
     void setHighQualityAntialiasing(bool highQualityAntialiasing);
     void setViewBackground(bool enable);
@@ -89,9 +92,6 @@ protected:
     void enterEvent(QEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
-
-    /// Attaches view represented by obj to this
-    int attachView(App::DocumentObject *obj) override;
 
     /// As attachView (TODO: Perhaps roll this in to attachView?)
     virtual void attachTemplate(TechDraw::DrawTemplate *obj) override;

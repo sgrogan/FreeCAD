@@ -34,7 +34,6 @@ class DrawTemplate;
 
 class TechDrawExport GIPage : public QGraphicsView
 {
-    Q_OBJECT
 public:
     GIPage(DrawPage *page, QWidget *parent = 0);
     virtual ~GIPage();
@@ -62,10 +61,10 @@ public:
     GIBase * findView(App::DocumentObject *obj) const;
     GIBase * findParent(GIBase *) const;
 
-protected:
     /// Attaches view represented by obj to this
     virtual int attachView(App::DocumentObject *obj);
     
+protected:
     /// As attachView (TODO: Perhaps roll this in to attachView?)
     virtual void attachTemplate(DrawTemplate *obj);
 

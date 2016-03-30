@@ -520,9 +520,8 @@ void MDIViewPage::updateDrawing(bool forceUpdate)
         // TODO think of a better algorithm to deal with any changes to views list
         std::vector<App::DocumentObject*> notFnd;
         findMissingViews(pageChildren, notFnd);
-        for(std::vector<App::DocumentObject*>::const_iterator it = notFnd.begin(); it != notFnd.end(); ++it) {
-            assert(0);
-//TODO: Fix this            attachView(*it);
+        for(auto it : notFnd) {
+            m_view->attachView(it);
         }
     } else if(graphicsList.size() > docObjCount) {
         // There are more graphical representations (QGIVxxxx) than DocumentObjects
