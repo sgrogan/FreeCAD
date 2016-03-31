@@ -29,7 +29,7 @@ Git repository:     https://github.com/FreeCAD/FreeCAD
 Installing
 ----------
 
-Precompiled (installable) packages are available for Windows and Mac >=10.9 on the
+Precompiled (installable) packages are available for Windows and Mac on the
 releases page at https://github.com/FreeCAD/FreeCAD/releases
 
 On most Linux distributions, FreeCAD is directly installable from the 
