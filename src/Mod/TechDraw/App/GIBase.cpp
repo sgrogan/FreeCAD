@@ -66,7 +66,9 @@ GIBase::GIBase(const QPoint &pos, QGraphicsScene *scene)
     m_font.setPointSize(5.0);     //scene units (mm), not points
 
     //Add object to scene
-    scene->addItem(this);
+    if(scene) {
+        scene->addItem(this);
+    }
 
     m_label = new QGraphicsTextItem();
     addToGroup(m_label);

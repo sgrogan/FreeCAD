@@ -20,8 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef GIVIEWBASE_HEADER
-#define GIVIEWBASE_HEADER
+#ifndef GIBASE_HEADER
+#define GIBASE_HEADER
 
 #include <QFont>
 #include <QGraphicsItemGroup>
@@ -36,7 +36,7 @@ class TechDrawExport GIBase : public QGraphicsItemGroup
 {
 public:
     GIBase(const QPoint &pos, QGraphicsScene *scene);
-    virtual ~GIBase() {};
+    virtual ~GIBase() = default;
 
     enum {Type = QGraphicsItem::UserType + 101};
     int type() const { return Type;}
@@ -86,5 +86,5 @@ protected:
 
 } // end namespace TechDraw
 
-#endif // #ifndef GIVIEWBASE_HEADER
+#endif // #ifndef GIBASE_HEADER
 

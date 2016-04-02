@@ -60,6 +60,8 @@ SOURCE_GROUP("TechDraw Moc" FILES ${TechDraw_MOC_SRCS})
 SET(DrawGI_SRCS
     GIBase.h
     GIBase.cpp
+    GICollection.h
+    GICollection.cpp
     GIPage.h
     GIPage.cpp
     ${DrawGI_MOC_HDRS}

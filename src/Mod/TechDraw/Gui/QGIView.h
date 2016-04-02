@@ -38,10 +38,11 @@ class DrawView;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGIView : public TechDraw::GIBase
+class TechDrawGuiExport QGIView : public virtual TechDraw::GIBase
 {
 public:
     QGIView(const QPoint &position, QGraphicsScene *scene);
+    QGIView();
     ~QGIView() = default;
 
     virtual void toggleBorder(bool state = true);
@@ -70,7 +71,6 @@ protected:
 
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
-   
     QBrush m_brush;
     QPen m_decorPen;
 };

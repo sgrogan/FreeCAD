@@ -89,6 +89,7 @@ class TechDrawGuiExport QGIViewDimension : public QObject, public QGIView
 public:
     enum {Type = QGraphicsItem::UserType + 106};
 
+    //TODO: Why explicit?
     explicit QGIViewDimension(const QPoint &position, QGraphicsScene *scene);
     ~QGIViewDimension();
 

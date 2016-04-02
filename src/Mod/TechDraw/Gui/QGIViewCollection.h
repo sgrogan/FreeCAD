@@ -28,6 +28,7 @@
 #include <App/PropertyLinks.h>
 
 #include "QGIView.h"
+#include "../App/GICollection.h"
 
 QT_BEGIN_NAMESPACE
 class QGraphicsScene;
@@ -42,11 +43,13 @@ class DrawViewCollection;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport  QGIViewCollection : public QGIView
+class TechDrawGuiExport  QGIViewCollection : public virtual QGIView,
+                                             public virtual TechDraw::GICollection
 {
 public:
     QGIViewCollection(const QPoint &position, QGraphicsScene *scene);
-    ~QGIViewCollection();
+    QGIViewCollection();
+    ~QGIViewCollection() = default;
 
     enum {Type = QGraphicsItem::UserType + 110};
     int type() const { return Type;}
@@ -55,7 +58,7 @@ public:
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 
 protected:
-  virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
 };
 

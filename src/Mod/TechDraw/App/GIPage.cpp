@@ -28,8 +28,10 @@
 #include "DrawSVGTemplate.h"
 #include "DrawViewCollection.h"
 #include "DrawViewDimension.h"
+#include "GICollection.h"
 
 #include "GIPage.h"
+
 #include <QDebug>   // TODO: Remove this
 using namespace TechDraw;
 
@@ -149,11 +151,10 @@ GIBase * GIPage::findParent(GIBase *view) const
             }
         }
     }
-/* TODO: Pending splitting QGIViewCollection
     // Check if part of view collection
     for(std::vector<GIBase *>::const_iterator it = qviews.begin(); it != qviews.end(); ++it) {
-        QGIViewCollection *grp = 0;
-        grp = dynamic_cast<QGIViewCollection *>(*it);
+        GICollection *grp = 0;
+        grp = dynamic_cast<GICollection *>(*it);
         if(grp) {
             DrawViewCollection *collection = 0;
             collection = dynamic_cast<DrawViewCollection *>(grp->getViewObject());
@@ -161,13 +162,12 @@ GIBase * GIPage::findParent(GIBase *view) const
                 std::vector<App::DocumentObject *> objs = collection->Views.getValues();
                 for( std::vector<App::DocumentObject *>::iterator it = objs.begin(); it != objs.end(); ++it) {
                     if(strcmp(myView->getNameInDocument(), (*it)->getNameInDocument()) == 0)
-
                         return grp;
                 }
             }
         }
-     }
-*/
+    }
+
     // Not found a parent
     return 0;
 }

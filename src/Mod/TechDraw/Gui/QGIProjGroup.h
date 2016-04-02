@@ -46,6 +46,7 @@ class TechDrawGuiExport QGIProjGroup : public QGIViewCollection
 {
 public:
     QGIProjGroup(const QPoint &position, QGraphicsScene *scene);
+    QGIProjGroup();
     ~QGIProjGroup();
 
     enum {Type = QGraphicsItem::UserType + 113};

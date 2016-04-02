@@ -47,7 +47,8 @@
 using namespace TechDrawGui;
 
 QGIProjGroup::QGIProjGroup(const QPoint &pos, QGraphicsScene *scene)
-    :QGIViewCollection(pos, scene)
+    : TechDraw::GIBase(pos, scene),
+      QGIViewCollection(pos, scene)
 {
     setPos(pos);
     origin = new QGraphicsItemGroup();
@@ -62,6 +63,11 @@ QGIProjGroup::QGIProjGroup(const QPoint &pos, QGraphicsScene *scene)
     setFlag(ItemIsMovable, true);
     setFiltersChildEvents(true);
     borderVisible = false;
+}
+
+QGIProjGroup::QGIProjGroup()
+    : TechDraw::GIBase(QPoint(), nullptr)
+{
 }
 
 QGIProjGroup::~QGIProjGroup()

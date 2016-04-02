@@ -61,7 +61,22 @@ const float lineScaleFactor = 1.;   // temp fiddle for devel
 const float vertexScaleFactor = 2.; // temp fiddle for devel
 
 QGIViewPart::QGIViewPart(const QPoint &pos, QGraphicsScene *scene)
-                :QGIView(pos, scene)
+    : TechDraw::GIBase(pos, scene),
+      QGIView(pos, scene)
+{
+    setHandlesChildEvents(false);
+    setCacheMode(QGraphicsItem::NoCache);
+    setAcceptHoverEvents(true);
+    setFlag(QGraphicsItem::ItemIsMovable, true);
+
+    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
+        .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/Drawing/Colors");
+    App::Color fcColor = App::Color((uint32_t) hGrp->GetUnsigned("HiddenColor", 0x08080800));
+    m_colHid = fcColor.asQColor();
+}
+
+QGIViewPart::QGIViewPart()
+    : TechDraw::GIBase(QPoint(), nullptr)    
 {
     setHandlesChildEvents(false);
     setCacheMode(QGraphicsItem::NoCache);

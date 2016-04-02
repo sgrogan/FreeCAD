@@ -157,9 +157,10 @@ void QGIDatumLabel::mouseReleaseEvent( QGraphicsSceneMouseEvent * event)
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
-QGIViewDimension::QGIViewDimension(const QPoint &pos, QGraphicsScene *scene) :
-    QGIView(pos, scene),
-    hasHover(false)
+QGIViewDimension::QGIViewDimension(const QPoint &pos, QGraphicsScene *scene)
+    : TechDraw::GIBase(pos, scene),
+      QGIView(pos, scene),
+      hasHover(false)
 {
     setHandlesChildEvents(false);
     setFlag(QGraphicsItem::ItemIsMovable, false);
