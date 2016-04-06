@@ -40,17 +40,8 @@
 
 using namespace TechDrawGui;
 
-QGIView::QGIView(const QPoint &pos, QGraphicsScene *scene) :
-    TechDraw::GIBase(pos, scene),
+QGIView::QGIView() :
     borderVisible(true)
-{
-    m_decorPen.setStyle(Qt::DashLine);
-    m_decorPen.setWidth(0); // 0 => 1px "cosmetic pen"
-}
-
-QGIView::QGIView()
-    : GIBase(QPoint(), nullptr),    
-      borderVisible(true)
 {
     m_decorPen.setStyle(Qt::DashLine);
     m_decorPen.setWidth(0); // 0 => 1px "cosmetic pen"

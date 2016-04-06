@@ -90,6 +90,7 @@ public:
     enum {Type = QGraphicsItem::UserType + 106};
 
     //TODO: Why explicit?
+    // TODO: Get rid of position and scene...
     explicit QGIViewDimension(const QPoint &position, QGraphicsScene *scene);
     ~QGIViewDimension();
 

@@ -41,7 +41,6 @@ namespace TechDrawGui
 class TechDrawGuiExport QGIView : public virtual TechDraw::GIBase
 {
 public:
-    QGIView(const QPoint &position, QGraphicsScene *scene);
     QGIView();
     ~QGIView() = default;
 

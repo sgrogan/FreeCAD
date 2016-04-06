@@ -35,7 +35,7 @@ namespace TechDraw {
 class TechDrawExport GIBase : public QGraphicsItemGroup
 {
 public:
-    GIBase(const QPoint &pos, QGraphicsScene *scene);
+    GIBase();
     virtual ~GIBase() = default;
 
     enum {Type = QGraphicsItem::UserType + 101};

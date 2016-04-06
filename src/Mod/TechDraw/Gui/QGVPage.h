@@ -24,6 +24,7 @@
 #define DRAWINGGUI_CANVASVIEW_H
 
 #include "../App/GIPage.h"
+#include "../App/GIBase.h"
 #include "QGIView.h"
 
 namespace TechDraw {
@@ -55,6 +56,8 @@ public:
 
     void setRenderer(RendererType type = Native);
     void drawBackground(QPainter *p, const QRectF &rect) override;
+
+    int addView(TechDraw::GIBase *view) override;
 
     QGIView * addViewDimension(TechDraw::DrawViewDimension *dim);
     QGIView * addProjectionGroup(TechDraw::DrawProjGroup *view);

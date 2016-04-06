@@ -49,8 +49,7 @@ class TechDrawGuiExport QGIViewPart : public QObject, public QGIView
 public:
 
         //TODO: Why the "explicit"?
-    explicit QGIViewPart(const QPoint &position, QGraphicsScene *scene);
-    QGIViewPart();
+    explicit QGIViewPart();
     ~QGIViewPart();
 
     enum {Type = QGraphicsItem::UserType + 102};

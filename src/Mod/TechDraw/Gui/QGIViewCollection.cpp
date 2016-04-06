@@ -43,22 +43,15 @@
 
 using namespace TechDrawGui;
 
-QGIViewCollection::QGIViewCollection(const QPoint &pos, QGraphicsScene *scene)
-    : TechDraw::GIBase(pos, scene)
+QGIViewCollection::QGIViewCollection()
 {
     setFlags(QGraphicsItem::ItemIsSelectable);
-    setPos(pos);
 
     setHandlesChildEvents(false);
 
     //setCacheMode(QGraphicsItem::NoCache);
     setAcceptHoverEvents(true);
     setFlag(QGraphicsItem::ItemIsMovable, true);
-}
-
-QGIViewCollection::QGIViewCollection()
-    : GIBase(QPoint(), nullptr)
-{
 }
 
 QVariant QGIViewCollection::itemChange(GraphicsItemChange change, const QVariant &value)

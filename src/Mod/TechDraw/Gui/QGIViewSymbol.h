@@ -46,6 +46,7 @@ class TechDrawGuiExport QGIViewSymbol : public QObject, public QGIView
     Q_OBJECT
 
 public:
+        // TODO: Cleanup unused variables
     explicit QGIViewSymbol(const QPoint &position, QGraphicsScene *scene);
     ~QGIViewSymbol();
 

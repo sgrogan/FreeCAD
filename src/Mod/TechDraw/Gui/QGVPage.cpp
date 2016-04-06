@@ -155,7 +155,9 @@ void QGVPage::drawBackground(QPainter *p, const QRectF &)
 
 QGIView * QGVPage::addViewPart(TechDraw::DrawViewPart *part)
 {
-    QGIViewPart *viewPart = new QGIViewPart(QPoint(0,0), scene());
+    QGIViewPart *viewPart(new QGIViewPart);
+//    viewPart->setPos(QPoint(0,0));  // TODO: Is it OK to assume we're starting at (0,0)?
+
     viewPart->setViewPartFeature(part);
 
     addView(viewPart);
@@ -172,7 +174,10 @@ QGIView * QGVPage::addViewSection(TechDraw::DrawViewPart *part)
 }
 
 QGIView * QGVPage::addProjectionGroup(TechDraw::DrawProjGroup *view) {
-    QGIViewCollection *qview = new  QGIProjGroup(QPoint(0,0), scene());
+    QGIViewCollection *qview(new QGIProjGroup);
+
+//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
+
     qview->setViewFeature(view);
     addView(qview);
     return qview;
@@ -180,15 +185,19 @@ QGIView * QGVPage::addProjectionGroup(TechDraw::DrawProjGroup *view) {
 
 QGIView * QGVPage::addDrawView(TechDraw::DrawView *view)
 {
-    QGIView *qview = new  QGIView(QPoint(0,0), scene());
+    QGIView *qview(new QGIView);
+//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
+
     qview->setViewFeature(view);
     addView(qview);
+
     return qview;
 }
 
 QGIView * QGVPage::addDrawViewCollection(TechDraw::DrawViewCollection *view)
 {
-    QGIViewCollection *qview = new  QGIViewCollection(QPoint(0,0), scene());
+    QGIViewCollection *qview(new QGIViewCollection);
+//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
     qview->setViewFeature(view);
     addView(qview);
     return qview;
@@ -219,16 +228,30 @@ QGIView * QGVPage::addDrawViewSymbol(TechDraw::DrawViewSymbol *view)
 QGIView * QGVPage::addDrawViewClip(TechDraw::DrawViewClip *view)
 {
     QPoint qp(view->X.getValue(),view->Y.getValue());
-    QGIViewClip *qview = new  QGIViewClip(qp, scene());
+    QGIViewClip *qview = new QGIViewClip(qp, scene());
     qview->setViewFeature(view);
 
     addView(qview);
     return qview;
 }
 
+int QGVPage::addView(TechDraw::GIBase *view)
+{
+    auto scn(scene());
+    assert(scn);
+    scn->addItem(view);
+
+    return TechDraw::GIPage::addView(view);
+}
+
 QGIView * QGVPage::addViewDimension(TechDraw::DrawViewDimension *dim)
 {
-    QGIViewDimension *dimGroup = new QGIViewDimension(QPoint(0,0), scene());
+    QGIViewDimension *dimGroup(new QGIViewDimension(QPoint(0,0), scene()) );
+
+    auto sc(scene());
+    assert(sc);
+    sc->addItem(dimGroup);
+
     dimGroup->setViewPartFeature(dim);
 
     // TODO consider changing dimension feature to use another property for label position
@@ -460,7 +483,7 @@ int QGVPage::attachView(App::DocumentObject *obj)
 {
     qDebug() << "in QGVPage::attachView";
     
-    QGIView *qview = 0;
+    QGIView *qview(nullptr);
     if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewSection::getClassTypeId()) ) {
         TechDraw::DrawViewSection *viewSect = dynamic_cast<TechDraw::DrawViewSection *>(obj);
         qview = addViewSection(viewSect);

@@ -47,7 +47,6 @@ class TechDrawGuiExport  QGIViewCollection : public virtual QGIView,
                                              public virtual TechDraw::GICollection
 {
 public:
-    QGIViewCollection(const QPoint &position, QGraphicsScene *scene);
     QGIViewCollection();
     ~QGIViewCollection() = default;
 

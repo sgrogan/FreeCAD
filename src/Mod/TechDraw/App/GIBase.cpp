@@ -37,7 +37,7 @@
 
 using namespace TechDraw;
 
-GIBase::GIBase(const QPoint &pos, QGraphicsScene *scene)
+GIBase::GIBase()
     : QGraphicsItemGroup(),
       locked(false),
       m_innerView(false)
@@ -46,7 +46,6 @@ GIBase::GIBase(const QPoint &pos, QGraphicsScene *scene)
     setFlag(QGraphicsItem::ItemSendsScenePositionChanges, true);
     setFlag(QGraphicsItem::ItemSendsGeometryChanges,true);
     setAcceptHoverEvents(true);
-    setPos(pos);
 
     Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
         .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw/Colors");
@@ -64,11 +63,6 @@ GIBase::GIBase(const QPoint &pos, QGraphicsScene *scene)
     std::string fontName = hGrp->GetASCII("LabelFont", "osifont");
     m_font.setFamily(QString::fromStdString(fontName));
     m_font.setPointSize(5.0);     //scene units (mm), not points
-
-    //Add object to scene
-    if(scene) {
-        scene->addItem(this);
-    }
 
     m_label = new QGraphicsTextItem();
     addToGroup(m_label);

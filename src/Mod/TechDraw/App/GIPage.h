@@ -58,7 +58,7 @@ public:
     /*!
      * \return the size of the views vector.
      */
-    int addView(GIBase *view);
+    virtual int addView(GIBase *view);
 
     GIBase * findView(App::DocumentObject *obj) const;
     GIBase * findParent(GIBase *) const;

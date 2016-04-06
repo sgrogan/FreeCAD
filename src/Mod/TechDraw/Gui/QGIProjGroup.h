@@ -45,7 +45,6 @@ namespace TechDrawGui
 class TechDrawGuiExport QGIProjGroup : public QGIViewCollection
 {
 public:
-    QGIProjGroup(const QPoint &position, QGraphicsScene *scene);
     QGIProjGroup();
     ~QGIProjGroup();
 

@@ -42,7 +42,7 @@ class TechDrawGuiExport QGIViewClip : public QObject, public QGIView
     Q_OBJECT
 
 public:
-
+    //TODO
     explicit QGIViewClip(const QPoint &position, QGraphicsScene *scene);
     ~QGIViewClip();
 
