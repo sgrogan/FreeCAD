@@ -25,7 +25,7 @@
 
 #include <QGraphicsView>
 
-#include "DrawPage.h"
+#include "../DrawPage.h"
 #include "GIBase.h"
 
 namespace TechDraw {

@@ -25,9 +25,9 @@
 # include <QSvgGenerator>
 #endif // #ifndef _PreComp_
 
-#include "DrawSVGTemplate.h"
-#include "DrawViewCollection.h"
-#include "DrawViewDimension.h"
+#include "../DrawSVGTemplate.h"
+#include "../DrawViewCollection.h"
+#include "../DrawViewDimension.h"
 #include "GICollection.h"
 
 #include "GIPage.h"

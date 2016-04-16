@@ -20,71 +20,22 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef GIBASE_HEADER
-#define GIBASE_HEADER
+#ifndef GICOLLECTION_HEADER
+#define GICOLLECTION_HEADER
 
-#include <QFont>
-#include <QGraphicsItemGroup>
-#include <QObject>
-#include <QPen>
-
-#include "DrawView.h"
+#include "GIBase.h"
 
 namespace TechDraw {
 
-class TechDrawExport GIBase : public QGraphicsItemGroup
+class TechDrawExport GICollection: public virtual GIBase
 {
 public:
-    GIBase();
-    virtual ~GIBase() = default;
+    GICollection() = default;
+    virtual ~GICollection() = default;
 
-    enum {Type = QGraphicsItem::UserType + 101};
-    int type() const { return Type;}
-
-    const char * getViewName() const;
-
-    void setViewFeature(TechDraw::DrawView *obj);
-    TechDraw::DrawView * getViewObject() const;    
-
-    /// Methods to ensure that Y-Coordinates are orientated correctly.
-    /// @{
-    void setPosition(qreal x, qreal y);
-    inline qreal getY() { return y() * -1; }
-    bool isInnerView() { return m_innerView; }
-    void isInnerView(bool state) { m_innerView = state; }
-    double getYInClip(double y);
-    /// @}
-
-    /// Used for constraining views to line up eg in a Projection Group
-    void alignTo(QGraphicsItem*, const QString &alignment);
-
-    virtual void updateView(bool update = false);
-    virtual void paint( QPainter *painter,
-                        const QStyleOptionGraphicsItem *option,
-                        QWidget *widget = nullptr );
-
-protected:
-    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
-
-    DrawView *viewObj;
-
-    bool locked;
-    bool m_innerView;  //View is inside another View
-
-    std::string viewName;
-
-    QColor m_colCurrent;
-    QColor m_colNormal;
-    QColor m_colPre;
-    QColor m_colSel;
-    QFont m_font;
-    QGraphicsRectItem* m_border;
-    QGraphicsTextItem* m_label;
-    QHash<QString, QGraphicsItem*> alignHash;
-    QPen m_pen;
-};
+}; // end class GICollection
 
 } // end namespace TechDraw
 
-#endif // #ifndef GIBASE_HEADER
+#endif // #ifndef GICOLLECTION_HEADER
 

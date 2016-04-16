@@ -25,14 +25,35 @@ set(TechDrawLIBS
     FreeCADApp
 )
 
+# Since we use QGraphicsScene and QGraphicsItem - derived classes to render
+# Drawings, we need to use Qt's GUI library even when we're just building the
+# "App" side of TechDraw.  The "App" code using Qt GUI is segregated to the
+# GraphicsItems subdirectory, so that it's still possible to build a reduced-
+# functionality TechDraw without Qt's GUI library.
 if(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
+    include_directories(${QT_QTGUI_INCLUDE_DIR} ${QT_QTSVG_INCLUDE_DIR})
     list(APPEND TechDrawLIBS ${QT_QTGUI_LIBRARY} ${QT_QTSVG_LIBRARY})
 
+    SET(DrawGI_SRCS
+        GraphicsItems/GIBase.h
+        GraphicsItems/GIBase.cpp
+        GraphicsItems/GICollection.h
+        GraphicsItems/GICollection.cpp
+        GraphicsItems/GIPage.h
+        GraphicsItems/GIPage.cpp
+        )
+
+    SOURCE_GROUP("GraphicsItems" FILES ${DrawGI_SRCS})
+
+    list(APPEND TechDraw_App_SRCS ${DrawGI_SRCS})
+
+    add_definitions(-DTECHDRAW_APP_USE_QGRAPHICS=1)
+
 else(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
-    # TODO: Try to get this to a point where we can compile a reduced-
-    # functionality version of App that doesn't need QGraphics stuff.
-    message(SEND_ERROR
-            "QT_QTGUI_LIBRARY or QT_QTSVG_LIBRARY not found - can't use TechDraw.")
+    # This should allow FreeCAD to manipulate files that contain
+    # Drawings, but won't allow drawings to be rendered.
+    message(WARNING "QT_QTGUI_LIBRARY and QT_QTSVG_LIBRARY"
+        " are required to use TechDraw.")
 
 endif(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
 
@@ -50,22 +71,6 @@ generate_from_xml(DrawHatchPy)
 generate_from_xml(DrawViewCollectionPy)
 generate_from_xml(DrawProjGroupPy)
 generate_from_xml(DrawProjGroupItemPy)
-
-SET(DrawGI_MOC_HDRS
-   ) # end of SET(DrawGI_MOC_HDRS
-
-fc_wrap_cpp(TechDraw_MOC_SRCS ${DrawGI_MOC_HDRS})
-SOURCE_GROUP("TechDraw Moc" FILES ${TechDraw_MOC_SRCS})
-
-SET(DrawGI_SRCS
-    GIBase.h
-    GIBase.cpp
-    GICollection.h
-    GICollection.cpp
-    GIPage.h
-    GIPage.cpp
-    ${DrawGI_MOC_HDRS}
-   ) # end of SET(QGI_SRCS
 
 SET(Draw_SRCS
     DrawPage.cpp
@@ -149,8 +154,6 @@ SOURCE_GROUP("Mod" FILES ${TechDraw_SRCS})
 SOURCE_GROUP("Features" FILES ${Draw_SRCS})
 SOURCE_GROUP("Geometry" FILES ${Geometry_SRCS})
 SOURCE_GROUP("Python" FILES ${Python_SRCS})
-SOURCE_GROUP("GraphicsItems" FILES ${DrawGI_SRCS})
-
 
 if(MSVC)
     #add_definitions(-D_PreComp_)
@@ -158,8 +161,11 @@ if(MSVC)
     #ADD_MSVC_PRECOMPILED_HEADER(TechDraw PreCompiled.h PreCompiled.cpp TechDrawCPP_SRCS)
 endif(MSVC)
 
-add_library(TechDraw SHARED ${TechDraw_SRCS} ${Draw_SRCS} ${TechDrawAlgos_SRCS}
-                            ${Geometry_SRCS} ${Python_SRCS} ${DrawGI_SRCS})
+list(APPEND TechDraw_App_SRCS ${TechDraw_SRCS} ${Draw_SRCS}
+    ${TechDrawAlgos_SRCS} ${Geometry_SRCS} ${Python_SRCS})
+
+add_library(TechDraw SHARED ${TechDraw_App_SRCS})
+
 target_link_libraries(TechDraw ${TechDrawLIBS};${QT_QTXML_LIBRARY};${TechDraw})
 
 SET(TechDrawScripts

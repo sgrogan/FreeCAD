@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) 2012-2013 Luke Parry <l.parry@warwick.ac.uk>            *
+ *   Copyright (c) 2016                    Ian Rees <ian.rees@gmail.com>   *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -20,60 +20,13 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef DRAWINGGUI_QGRAPHICSITEMVIEW_H
-#define DRAWINGGUI_QGRAPHICSITEMVIEW_H
+#include "PreCompiled.h"
+#ifndef _PreComp_
+#endif // #ifndef _PreComp_
 
+#include "GICollection.h"
 
-#include "../App/GraphicsItems/GIBase.h"
+using namespace TechDraw;
 
-QT_BEGIN_NAMESPACE
-class QGraphicsScene;
-class QGraphicsSceneMouseEvent;
-QT_END_NAMESPACE
+//TODO Put some of the codes in this file
 
-namespace TechDraw {
-class DrawView;
-}
-
-namespace TechDrawGui
-{
-
-class TechDrawGuiExport QGIView : public virtual TechDraw::GIBase
-{
-public:
-    QGIView();
-    ~QGIView() = default;
-
-    virtual void toggleBorder(bool state = true);
-    virtual void drawBorder(void);
-
-    void setLocked(bool state = true) { locked = true; }
-
-    virtual void toggleCache(bool state);
-
-    virtual void paint( QPainter *painter,
-                        const QStyleOptionGraphicsItem *option,
-                        QWidget *widget = nullptr );
-    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
-
-protected:
-
-    bool borderVisible;
-    
-        // Mouse handling
-    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event );
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
-    // Preselection events:
-    virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
-    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
-    virtual QRectF customChildrenBoundingRect(void);
-
-    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
-
-    QBrush m_brush;
-    QPen m_decorPen;
-};
-
-} // namespace MDIViewPageGui
-
-#endif // DRAWINGGUI_QGRAPHICSITEMVIEW_H

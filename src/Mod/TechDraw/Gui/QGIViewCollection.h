@@ -28,7 +28,7 @@
 #include <App/PropertyLinks.h>
 
 #include "QGIView.h"
-#include "../App/GICollection.h"
+#include "../App/GraphicsItems/GICollection.h"
 
 QT_BEGIN_NAMESPACE
 class QGraphicsScene;

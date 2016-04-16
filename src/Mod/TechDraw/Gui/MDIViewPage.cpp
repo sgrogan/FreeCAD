@@ -86,7 +86,7 @@
 #include <Mod/TechDraw/App/DrawViewSymbol.h>
 #include <Mod/TechDraw/App/DrawViewClip.h>
 #include <Mod/TechDraw/App/DrawHatch.h>
-#include "../App/GIBase.h"
+#include "../App/GraphicsItems/GIBase.h"
 
 #include "QGIDrawingTemplate.h"
 #include "QGIViewPart.h"

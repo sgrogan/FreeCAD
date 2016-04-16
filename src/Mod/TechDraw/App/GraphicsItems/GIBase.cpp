@@ -30,8 +30,7 @@
 #include "App/PropertyLinks.h"
 #include "Base/Parameter.h"
 
-#include "DrawView.h"
-#include "DrawView.h"
+#include "../DrawView.h"
 
 #include "GIBase.h"
 

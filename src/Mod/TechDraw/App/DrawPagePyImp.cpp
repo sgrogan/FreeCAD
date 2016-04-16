@@ -7,11 +7,13 @@
 #include "Mod/TechDraw/App/DrawView.h"
 #include "DrawViewPy.h"
 
+#if TECHDRAW_APP_USE_QGRAPHICS
+    #include "GraphicsItems/GIPage.h"
+#endif
+
 // inclusion of the generated files (generated out of DrawPagePy.xml)
 #include "DrawPagePy.h"
 #include "DrawPagePy.cpp"
-
-#include "GIPage.h"
 
 using namespace TechDraw;
 
@@ -69,12 +71,14 @@ PyObject* DrawPagePy::getPageOrientation(PyObject *args)
 
 PyObject* DrawPagePy::saveSvg(PyObject *args)
 {
+#if TECHDRAW_APP_USE_QGRAPHICS
     auto drawPage(getDrawPagePtr());
     if (drawPage && drawPage->getGi()) {
         drawPage->getGi()->saveSvg(QString::fromAscii("/Users/irees/Desktop/fromPython.svg"));
         return PyBool_FromLong(true);
     }
-    return 0;
+#endif  // #if TECHDRAW_APP_USE_QGRAPHICS
+    return nullptr;
 }
 
 PyObject *DrawPagePy::getCustomAttributes(const char* attr) const

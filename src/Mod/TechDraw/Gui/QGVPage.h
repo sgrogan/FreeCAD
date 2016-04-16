@@ -23,8 +23,8 @@
 #ifndef DRAWINGGUI_CANVASVIEW_H
 #define DRAWINGGUI_CANVASVIEW_H
 
-#include "../App/GIPage.h"
-#include "../App/GIBase.h"
+#include "../App/GraphicsItems/GIPage.h"
+#include "../App/GraphicsItems/GIBase.h"
 #include "QGIView.h"
 
 namespace TechDraw {
