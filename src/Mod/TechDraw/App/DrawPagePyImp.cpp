@@ -74,11 +74,29 @@ PyObject* DrawPagePy::saveSvg(PyObject *args)
 #if TECHDRAW_APP_USE_QGRAPHICS
     auto drawPage(getDrawPagePtr());
     if (drawPage && drawPage->getGi()) {
-        drawPage->getGi()->saveSvg(QString::fromAscii("/Users/irees/Desktop/fromPython.svg"));
-        return PyBool_FromLong(true);
+
+        // Construct a QString from the passed in file name.
+        char *filenameEncoded;
+        if (!PyArg_ParseTuple(args, "et", "utf-8", &filenameEncoded))
+            return NULL;
+        auto filename(QString::fromUtf8(filenameEncoded));
+        PyMem_Free(filenameEncoded);
+
+        if (filename.length() < 1) {
+            PyErr_SetString(PyExc_ValueError, "Need a valid filename.");
+            return NULL;
+        }
+
+        drawPage->getGi()->saveSvg(filename);
+
+        Py_RETURN_NONE;
     }
+    PyErr_SetString(PyExc_SystemError, "Error getting handle on the GIPage.");
+#else  // #if TECHDRAW_APP_USE_QGRAPHICS
+    PyErr_SetString(PyExc_NotImplementedError,
+        "TechDraw was built without QtGUI or QtSVG, can't render Drawings.");
 #endif  // #if TECHDRAW_APP_USE_QGRAPHICS
-    return nullptr;
+    return NULL;
 }
 
 PyObject *DrawPagePy::getCustomAttributes(const char* attr) const

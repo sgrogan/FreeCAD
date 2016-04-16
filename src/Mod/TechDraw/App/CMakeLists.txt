@@ -10,20 +10,17 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}
     ${Boost_INCLUDE_DIRS}
-    ${QT_INCLUDE_DIR}
     ${OCC_INCLUDE_DIR}
     ${ZLIB_INCLUDE_DIR}
     ${PYTHON_INCLUDE_DIRS}
-    ${XercesC_INCLUDE_DIRS}
-    ${QT_QTCORE_INCLUDE_DIR}
-)
+    ${XercesC_INCLUDE_DIRS})
+
 link_directories(${OCC_LIBRARY_DIR})
 
 set(TechDrawLIBS
     Measure
     Part
-    FreeCADApp
-)
+    FreeCADApp)
 
 # Since we use QGraphicsScene and QGraphicsItem - derived classes to render
 # Drawings, we need to use Qt's GUI library even when we're just building the
@@ -112,15 +109,13 @@ SET(TechDraw_SRCS
     DrawUtil.cpp
     DrawUtil.h
     PreCompiled.cpp
-    PreCompiled.h
-)
+    PreCompiled.h)
 
 SET(Geometry_SRCS
     Geometry.cpp
     Geometry.h
     GeometryObject.cpp
-    GeometryObject.h
-)
+    GeometryObject.h)
 
 SET(Python_SRCS
     DrawPagePy.xml
@@ -168,9 +163,7 @@ add_library(TechDraw SHARED ${TechDraw_App_SRCS})
 
 target_link_libraries(TechDraw ${TechDrawLIBS};${QT_QTXML_LIBRARY};${TechDraw})
 
-SET(TechDrawScripts
-    Init.py
-)
+SET(TechDrawScripts Init.py)
 
 fc_target_copy_resource(TechDraw
     ${CMAKE_SOURCE_DIR}/src/Mod/TechDraw

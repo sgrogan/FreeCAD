@@ -75,7 +75,7 @@ protected:
 
     /// Pointer to DrawPage we are attached to
     // TODO: Replace this with a smart pointer
-    DrawPage *m_page;    
+    DrawPage *m_page;
 };  // end class GIPage
 
 };  // end namespace TechDraw
