@@ -77,7 +77,8 @@
 using namespace TechDrawGui;
 
 QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
-    : GIPage(page, parent),
+    : QGraphicsView(parent),
+      GIPage(page, parent),
       pageTemplate(0),
       m_renderer(Native),
       drawBkg(true),
@@ -85,6 +86,7 @@ QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
       m_outlineItem(0)
 {
     qDebug() << "Constructing QGVPage";
+    setScene(m_scene);
 
     const char *name = m_page->getNameInDocument();
     setObjectName(QString::fromLocal8Bit(name));
@@ -484,32 +486,28 @@ int QGVPage::attachView(App::DocumentObject *obj)
     qDebug() << "in QGVPage::attachView";
     
     QGIView *qview(nullptr);
-    if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewSection::getClassTypeId()) ) {
-        TechDraw::DrawViewSection *viewSect = dynamic_cast<TechDraw::DrawViewSection *>(obj);
-        qview = addViewSection(viewSect);
-    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawViewPart::getClassTypeId()) ) {
-        TechDraw::DrawViewPart *viewPart = dynamic_cast<TechDraw::DrawViewPart *>(obj);
-        qview = addViewPart(viewPart);
-    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawProjGroup::getClassTypeId()) ) {
-        TechDraw::DrawProjGroup *view = dynamic_cast<TechDraw::DrawProjGroup *>(obj);
-        qview = addProjectionGroup(view);
-    } else if (obj->getTypeId().isDerivedFrom(TechDraw::DrawViewCollection::getClassTypeId()) ) {
-        TechDraw::DrawViewCollection *collection = dynamic_cast<TechDraw::DrawViewCollection *>(obj);
-        qview = addDrawView(collection);
-    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewDimension::getClassTypeId()) ) {
-        TechDraw::DrawViewDimension *viewDim = dynamic_cast<TechDraw::DrawViewDimension *>(obj);
-        qview = addViewDimension(viewDim);
-    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewAnnotation::getClassTypeId()) ) {
-        TechDraw::DrawViewAnnotation *viewDim = dynamic_cast<TechDraw::DrawViewAnnotation *>(obj);
-        qview = addDrawViewAnnotation(viewDim);
-    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewSymbol::getClassTypeId()) ) {
-        TechDraw::DrawViewSymbol *viewSym = dynamic_cast<TechDraw::DrawViewSymbol *>(obj);
-        qview = addDrawViewSymbol(viewSym);
-    } else if(obj->getTypeId().isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
-        TechDraw::DrawViewClip *viewClip = dynamic_cast<TechDraw::DrawViewClip *>(obj);
-        qview = addDrawViewClip(viewClip);
+
+    auto typeId(obj->getTypeId());
+
+    if(typeId.isDerivedFrom(TechDraw::DrawViewSection::getClassTypeId()) ) {
+        qview = addViewSection( dynamic_cast<TechDraw::DrawViewSection *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawViewPart::getClassTypeId()) ) {
+        qview = addViewPart( dynamic_cast<TechDraw::DrawViewPart *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawProjGroup::getClassTypeId()) ) {
+        qview = addProjectionGroup( dynamic_cast<TechDraw::DrawProjGroup *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawViewCollection::getClassTypeId()) ) {
+        qview = addDrawView( dynamic_cast<TechDraw::DrawViewCollection *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewDimension::getClassTypeId()) ) {
+        qview = addViewDimension( dynamic_cast<TechDraw::DrawViewDimension *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewAnnotation::getClassTypeId()) ) {
+        qview = addDrawViewAnnotation( dynamic_cast<TechDraw::DrawViewAnnotation *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewSymbol::getClassTypeId()) ) {
+        qview = addDrawViewSymbol( dynamic_cast<TechDraw::DrawViewSymbol *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
+        qview = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
     } else {
-        Base::Console().Log("Logic Error - Unknown view type in MDIViewPage::attachView\n");
+        Base::Console().Log("Logic Error - Unknown view type in QGVPage::attachView()");
+        assert(0);
     }
 
     if(!qview)

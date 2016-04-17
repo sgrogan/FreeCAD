@@ -23,11 +23,20 @@
 #include "PreCompiled.h"
 #ifndef _PreComp_
 # include <QSvgGenerator>
+# include <QPainter>
 #endif // #ifndef _PreComp_
 
+#include "../DrawProjGroup.h"
 #include "../DrawSVGTemplate.h"
+#include "../DrawViewSection.h"
+#include "../DrawViewPart.h"
 #include "../DrawViewCollection.h"
 #include "../DrawViewDimension.h"
+#include "../DrawViewAnnotation.h"
+#include "../DrawViewSymbol.h"
+#include "../DrawViewClip.h"
+
+#include "GIBase.h"
 #include "GICollection.h"
 
 #include "GIPage.h"
@@ -35,15 +44,12 @@
 #include <QDebug>   // TODO: Remove this
 using namespace TechDraw;
 
-GIPage::GIPage(DrawPage *page, QWidget *parent)
-    : QGraphicsView(parent),
-      m_page(page)
+GIPage::GIPage(DrawPage *page, QObject *sceneParent) :
+    m_page(page),
+    m_scene(new QGraphicsScene(sceneParent))
 {
     assert(m_page);
-    m_page->registerGi(this);    
-    
-    setScene(new QGraphicsScene(this));
-
+    m_page->registerGi(this);
 }
 
 // Note that if the GUI is running, the calls to attachView() will
@@ -117,15 +123,13 @@ int GIPage::addView(GIBase *view)
 
 GIBase * GIPage::findView(App::DocumentObject *obj) const
 {
-  if(scene()) {
-    const std::vector<GIBase *> qviews = views;
-    for(std::vector<GIBase *>::const_iterator it = qviews.begin(); it != qviews.end(); ++it) {
-          TechDraw::DrawView *fview = (*it)->getViewObject();
-          if(fview && strcmp(obj->getNameInDocument(), fview->getNameInDocument()) == 0)
-              return *it;
-      }
-  }
-    return 0;
+    for(const auto it : views) {
+        TechDraw::DrawView *fview = it->getViewObject();
+        if(fview && strcmp(obj->getNameInDocument(), fview->getNameInDocument()) == 0)
+            return it;
+    }
+
+    return nullptr;
 }
 
 GIBase * GIPage::findParent(GIBase *view) const
@@ -179,10 +183,12 @@ GIPage::~GIPage()
 
 void GIPage::saveSvg(QString filename)
 {
+    assert(m_scene);
+
     const QString docName( QString::fromUtf8(m_page->getDocument()->getName()) );
     const QString pageName( QString::fromUtf8(m_page->getNameInDocument()) );
-    QString svgDescription = tr("Drawing page: ") + pageName +
-                             tr(" exported from FreeCAD document: ") + docName;
+    QString svgDescription = QObject::tr("Drawing page: ") + pageName +
+                             QObject::tr(" exported from FreeCAD document: ") + docName;
 
     //Base::Console().Message("TRACE - saveSVG - page width: %d height: %d\n",width,height);    //A4 297x210
     QSvgGenerator svgGen;
@@ -206,17 +212,52 @@ void GIPage::saveSvg(QString filename)
     //scene()->update();
 
     QPainter p;
-
     p.begin(&svgGen);
-    scene()->render(&p);
+    m_scene->render(&p);
     p.end();
 }
 
 int GIPage::attachView(App::DocumentObject *obj)
 {
     qDebug() << "in GIPage::attachView";
-    assert(0);  // TODO: Implement this
-    return -1;
+
+    GIBase *view(nullptr);
+
+    auto typeId(obj->getTypeId());
+
+    if(typeId.isDerivedFrom(TechDraw::DrawViewSection::getClassTypeId()) ) {
+        qDebug() << "Should add Section";
+//        view = addViewSection( dynamic_cast<TechDraw::DrawViewSection *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawViewPart::getClassTypeId()) ) {
+        qDebug() << "Should add Part";
+//        view = addViewPart( dynamic_cast<TechDraw::DrawViewPart *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawProjGroup::getClassTypeId()) ) {
+        qDebug() << "Should add ProjectionGroup";
+//        view = addProjectionGroup( dynamic_cast<TechDraw::DrawProjGroup *>(obj) );
+    } else if (typeId.isDerivedFrom(TechDraw::DrawViewCollection::getClassTypeId()) ) {
+        qDebug() << "Should add Collection";
+//        view = addDrawView( dynamic_cast<TechDraw::DrawViewCollection *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewDimension::getClassTypeId()) ) {
+        qDebug() << "Should add Dimension";
+//        view = addViewDimension( dynamic_cast<TechDraw::DrawViewDimension *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewAnnotation::getClassTypeId()) ) {
+        qDebug() << "Should add Annotation";
+//        view = addDrawViewAnnotation( dynamic_cast<TechDraw::DrawViewAnnotation *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewSymbol::getClassTypeId()) ) {
+        qDebug() << "Should add Symbol";
+//        view = addDrawViewSymbol( dynamic_cast<TechDraw::DrawViewSymbol *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
+        qDebug() << "Should add Clip";
+//        view = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
+    } else {
+      //  Base::Console().Log("Logic Error - Unknown view type in GIPage::attachView()");
+        assert(0);
+    }
+
+    if(!view)
+        return -1;
+    else
+        return views.size();
 }
 
 void GIPage::attachTemplate(TechDraw::DrawTemplate *obj)

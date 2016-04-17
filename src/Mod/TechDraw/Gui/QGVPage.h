@@ -44,7 +44,7 @@ class QGIViewDimension;
 class QGITemplate;
 class QGIHatch;
 
-class TechDrawGuiExport QGVPage : public TechDraw::GIPage
+class TechDrawGuiExport QGVPage : public QGraphicsView, public TechDraw::GIPage
 {
     Q_OBJECT
 

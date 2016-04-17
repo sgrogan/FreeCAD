@@ -38,7 +38,12 @@ if(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
         GraphicsItems/GICollection.cpp
         GraphicsItems/GIPage.h
         GraphicsItems/GIPage.cpp
+        GraphicsItems/GIPageRenderer.h
+        GraphicsItems/GIPageRenderer.cpp
         )
+
+    fc_wrap_cpp(TechDraw_MOC_SRCS GraphicsItems/GIPageRenderer.h)
+    SOURCE_GROUP("Moc" FILES ${TechDraw_MOC_SRCS})
 
     SOURCE_GROUP("GraphicsItems" FILES ${DrawGI_SRCS})
 

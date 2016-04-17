@@ -23,7 +23,7 @@
 #ifndef GIVIEWPAGE_HEADER
 #define GIVIEWPAGE_HEADER
 
-#include <QGraphicsView>
+#include <QGraphicsScene>
 
 #include "../DrawPage.h"
 #include "GIBase.h"
@@ -32,12 +32,17 @@ namespace TechDraw {
 
 class DrawTemplate;
 
-// The intent here is to contain the QGraphicsScene and associated infrastructure,
-// so the QGraphicsView parentage will likely be moved out to QGIPage
-class TechDrawExport GIPage : public QGraphicsView
+/// Contains the QGraphicsScene and GIBase-derived objects drawn on it
+/*!
+ * Note that this isn't intended as a "GUI" object in the sense that all user-
+ * facing GUI interaction is handled through QGVPage which provides the QWidget
+ * via QGraphicsView.  This class exists to allow rendering of a Drawing while
+ * running without GUI via GIPageRenderer.
+ */
+class TechDrawExport GIPage
 {
 public:
-    GIPage(DrawPage *page, QWidget *parent = 0);
+    GIPage(DrawPage *page, QObject *sceneParent = 0);
     virtual ~GIPage();
 
     /// Renders the page to SVG with filename.
@@ -74,8 +79,11 @@ protected:
     std::vector<GIBase *> views;
 
     /// Pointer to DrawPage we are attached to
-    // TODO: Replace this with a smart pointer
+    // TODO: Replace this with a smart pointer?
     DrawPage *m_page;
+
+    /// Our raison d'etre - the graphics scene!
+    QGraphicsScene *m_scene;
 };  // end class GIPage
 
 };  // end namespace TechDraw
