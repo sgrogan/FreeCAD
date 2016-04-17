@@ -47,10 +47,6 @@
 
 using namespace TechDrawGui;
 
-QGIViewSection::QGIViewSection(const QPoint &pos, QGraphicsScene *scene)
-{
-}
-
 void QGIViewSection::draw()
 {
     QGIViewPart::draw();

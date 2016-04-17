@@ -74,11 +74,8 @@ enum SnapMode{
         HorizontalSnap
     };
 
-QGIDatumLabel::QGIDatumLabel(int ref, QGraphicsScene *scene  ) : reference(ref)
+QGIDatumLabel::QGIDatumLabel()
 {
-    if(scene) {
-        scene->addItem(this);
-    }
     posX = 0;
     posY = 0;
 
@@ -157,7 +154,7 @@ void QGIDatumLabel::mouseReleaseEvent( QGraphicsSceneMouseEvent * event)
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
-QGIViewDimension::QGIViewDimension(const QPoint &pos, QGraphicsScene *scene)
+QGIViewDimension::QGIViewDimension()
     : hasHover(false)
 {
     setHandlesChildEvents(false);
@@ -206,10 +203,6 @@ QGIViewDimension::QGIViewDimension(const QPoint &pos, QGraphicsScene *scene)
     addToGroup(centreLines);
 
     toggleBorder(false);
-}
-
-QGIViewDimension::~QGIViewDimension()
-{
 }
 
 void QGIViewDimension::setViewPartFeature(TechDraw::DrawViewDimension *obj)

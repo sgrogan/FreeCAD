@@ -42,8 +42,7 @@ class TechDrawGuiExport QGIViewAnnotation : public QObject, public QGIView
     Q_OBJECT
 
 public:
-    // TODO: Clean up position and scene
-    explicit QGIViewAnnotation(const QPoint &position, QGraphicsScene *scene);
+    explicit QGIViewAnnotation();
     ~QGIViewAnnotation();
 
     enum {Type = QGraphicsItem::UserType + 120};

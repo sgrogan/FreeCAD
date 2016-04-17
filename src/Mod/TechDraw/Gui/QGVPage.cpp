@@ -158,7 +158,6 @@ void QGVPage::drawBackground(QPainter *p, const QRectF &)
 QGIView * QGVPage::addViewPart(TechDraw::DrawViewPart *part)
 {
     QGIViewPart *viewPart(new QGIViewPart);
-//    viewPart->setPos(QPoint(0,0));  // TODO: Is it OK to assume we're starting at (0,0)?
 
     viewPart->setViewPartFeature(part);
 
@@ -168,7 +167,7 @@ QGIView * QGVPage::addViewPart(TechDraw::DrawViewPart *part)
 
 QGIView * QGVPage::addViewSection(TechDraw::DrawViewPart *part)
 {
-    QGIViewSection *viewSection = new QGIViewSection(QPoint(0,0), scene());
+    QGIViewSection *viewSection(new QGIViewSection);
     viewSection->setViewPartFeature(part);
 
     addView(viewSection);
@@ -178,8 +177,6 @@ QGIView * QGVPage::addViewSection(TechDraw::DrawViewPart *part)
 QGIView * QGVPage::addProjectionGroup(TechDraw::DrawProjGroup *view) {
     QGIViewCollection *qview(new QGIProjGroup);
 
-//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
-
     qview->setViewFeature(view);
     addView(qview);
     return qview;
@@ -188,7 +185,6 @@ QGIView * QGVPage::addProjectionGroup(TechDraw::DrawProjGroup *view) {
 QGIView * QGVPage::addDrawView(TechDraw::DrawView *view)
 {
     QGIView *qview(new QGIView);
-//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
 
     qview->setViewFeature(view);
     addView(qview);
@@ -199,7 +195,7 @@ QGIView * QGVPage::addDrawView(TechDraw::DrawView *view)
 QGIView * QGVPage::addDrawViewCollection(TechDraw::DrawViewCollection *view)
 {
     QGIViewCollection *qview(new QGIViewCollection);
-//    qview->setPos(QPoint(0, 0));    // TODO: Is it OK to assume we're starting at (0,0)?
+
     qview->setViewFeature(view);
     addView(qview);
     return qview;
@@ -209,7 +205,8 @@ QGIView * QGVPage::addDrawViewCollection(TechDraw::DrawViewCollection *view)
 QGIView * QGVPage::addDrawViewAnnotation(TechDraw::DrawViewAnnotation *view)
 {
     // This essentially adds a null view feature to ensure view size is consistent
-    QGIViewAnnotation *qview = new  QGIViewAnnotation(QPoint(0,0), this->scene());
+    QGIViewAnnotation *qview(new QGIViewAnnotation);
+
     qview->setViewAnnoFeature(view);
 
     addView(qview);
@@ -218,9 +215,8 @@ QGIView * QGVPage::addDrawViewAnnotation(TechDraw::DrawViewAnnotation *view)
 
 QGIView * QGVPage::addDrawViewSymbol(TechDraw::DrawViewSymbol *view)
 {
-    QPoint qp(view->X.getValue(),view->Y.getValue());
     // This essentially adds a null view feature to ensure view size is consistent
-    QGIViewSymbol *qview = new  QGIViewSymbol(qp, scene());
+    QGIViewSymbol *qview(new QGIViewSymbol);
     qview->setViewFeature(view);
 
     addView(qview);
@@ -230,7 +226,7 @@ QGIView * QGVPage::addDrawViewSymbol(TechDraw::DrawViewSymbol *view)
 QGIView * QGVPage::addDrawViewClip(TechDraw::DrawViewClip *view)
 {
     QPoint qp(view->X.getValue(),view->Y.getValue());
-    QGIViewClip *qview = new QGIViewClip(qp, scene());
+    QGIViewClip *qview(new QGIViewClip);
     qview->setViewFeature(view);
 
     addView(qview);
@@ -248,7 +244,7 @@ int QGVPage::addView(TechDraw::GIBase *view)
 
 QGIView * QGVPage::addViewDimension(TechDraw::DrawViewDimension *dim)
 {
-    QGIViewDimension *dimGroup(new QGIViewDimension(QPoint(0,0), scene()) );
+    QGIViewDimension *dimGroup(new QGIViewDimension() );
 
     auto sc(scene());
     assert(sc);

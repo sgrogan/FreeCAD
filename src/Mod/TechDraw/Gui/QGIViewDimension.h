@@ -44,8 +44,8 @@ class QGIDatumLabel : public QGCustomText
 {
 Q_OBJECT
 public:
-    explicit QGIDatumLabel(int ref = -1, QGraphicsScene *scene = 0 );
-    ~QGIDatumLabel() {}
+    explicit QGIDatumLabel();
+    ~QGIDatumLabel() = default;
 
     enum {Type = QGraphicsItem::UserType + 107};
     int type() const { return Type;}
@@ -70,7 +70,6 @@ protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
 protected:
-    int reference;
     double posX;
     double posY;
 
@@ -90,9 +89,8 @@ public:
     enum {Type = QGraphicsItem::UserType + 106};
 
     //TODO: Why explicit?
-    // TODO: Get rid of position and scene...
-    explicit QGIViewDimension(const QPoint &position, QGraphicsScene *scene);
-    ~QGIViewDimension();
+    explicit QGIViewDimension();
+    ~QGIViewDimension() = default;
 
     void setViewPartFeature(TechDraw::DrawViewDimension *obj);
     int type() const { return Type;}

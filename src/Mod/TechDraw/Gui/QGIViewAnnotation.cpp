@@ -55,7 +55,7 @@
 
 using namespace TechDrawGui;
 
-QGIViewAnnotation::QGIViewAnnotation(const QPoint &pos, QGraphicsScene *scene)
+QGIViewAnnotation::QGIViewAnnotation()
 {
     setHandlesChildEvents(false);
     setCacheMode(QGraphicsItem::NoCache);
