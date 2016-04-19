@@ -20,8 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef GIVIEWPAGE_HEADER
-#define GIVIEWPAGE_HEADER
+#ifndef GIPAGE_HEADER
+#define GIPAGE_HEADER
 
 #include <QGraphicsScene>
 
@@ -88,5 +88,5 @@ protected:
 
 };  // end namespace TechDraw
 
-#endif // #ifndef GIVIEWPAGE_HEADER
+#endif // #ifndef GIPAGE_HEADER
 

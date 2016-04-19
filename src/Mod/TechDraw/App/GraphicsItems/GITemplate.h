@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) Ian Rees                    (ian.rees@gmail.com) 2015   *
+ *   Copyright (c) 2016                    Ian Rees <ian.rees@gmail.com>   *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -20,44 +20,45 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef DRAWINGGUI_TEMPLATETEXTFIELD_H
-#define DRAWINGGUI_TEMPLATETEXTFIELD_H
+#ifndef GITEMPLATE_HEADER
+#define GITEMPLATE_HEADER
 
-#include <QGraphicsRectItem>
+#include <QGraphicsItemGroup>
 
-#include "../App/DrawTemplate.h"
+#include "../DrawTemplate.h"
 
-QT_BEGIN_NAMESPACE
-class QGI;
-QT_END_NAMESPACE
+namespace TechDraw {
 
-namespace TechDrawGui
+/// Parent class representing backgrounds/templates of Drawings
+class TechDrawExport GITemplate : public QGraphicsItemGroup
 {
-    /// QGraphicsRectItem-derived class for the text fields in title blocks
-    /*!
-     * Makes a rectangular area which can be clicked to open up a text editing
-     * dialog.  Changes an appropriate Property in the Drawing's template.
-     */
-    class TechDrawGuiExport TemplateTextField : public QGraphicsRectItem
-    {
-        public:
-            TemplateTextField(QGraphicsItem*parent,
-                              TechDraw::DrawTemplate *myTmplte,
-                              const std::string &myFieldName);
+public:
+    GITemplate();
+    virtual ~GITemplate();
 
-            ~TemplateTextField() = default;
+    enum {Type = QGraphicsItem::UserType + 150};
+    int type() const { return Type;}
 
-            enum {Type = QGraphicsItem::UserType + 160};
-            int type() const { return Type;}
+    //TODO: Check on the ownership of obj, smart pointer?
+    void setTemplate(TechDraw::DrawTemplate *obj);
 
-            /// Returns the field name that this TemplateTextField represents
-            std::string fieldName() const { return fieldNameStr; }
+    TechDraw::DrawTemplate * getTemplate() { return pageTemplate; }
 
-        protected:
-            virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
-            TechDraw::DrawTemplate *tmplte;
-            std::string fieldNameStr;
-    };
-}   // namespace TechDrawGui
+    virtual void clearContents() = 0;
 
-#endif // #ifndef DRAWINGGUI_TEMPLATETEXTFIELD_H
+    // TODO: Might be able to get rid of this?
+    virtual void updateView(bool update = false) { draw(); }
+
+    virtual void draw() = 0;
+
+protected:
+    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+
+    TechDraw::DrawTemplate *pageTemplate;
+
+};  // end class GITemplate
+
+};  // end namespace TechDraw
+
+#endif // #ifndef GITEMPLATE_HEADER
+

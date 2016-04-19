@@ -23,7 +23,7 @@
 #ifndef DRAWINGGUI_QGRAPHICSITEMTEMPLATE_H
 #define DRAWINGGUI_QGRAPHICSITEMTEMPLATE_H
 
-#include <QGraphicsItemGroup>
+#include "../App/GraphicsItems/GITemplate.h"
 
 #include "TemplateTextField.h"
 
@@ -31,38 +31,14 @@ QT_BEGIN_NAMESPACE
 class QGraphicsScene;
 QT_END_NAMESPACE
 
-namespace TechDraw {
-class DrawTemplate;
-}
-
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGITemplate : public QGraphicsItemGroup
+class TechDrawGuiExport QGITemplate : public TechDraw::GITemplate
 {
 public:
-    QGITemplate(QGraphicsScene *);
-    ~QGITemplate();
-
-    enum {Type = QGraphicsItem::UserType + 150};
-    int type() const { return Type;}
-
-    void clearContents();
-
-    void setTemplate(TechDraw::DrawTemplate *obj);
-    TechDraw::DrawTemplate * getTemplate() { return pageTemplate; }
-
-    inline qreal getY() { return y() * -1; }
-
-    virtual void updateView(bool update = false);
-
-    virtual void draw() = 0;
-
-protected:
-    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
-    TechDraw::DrawTemplate *pageTemplate;
-
-    std::vector<TemplateTextField *> textFields;
+    QGITemplate() = default;
+    ~QGITemplate() = default;
 };
 
 } // namespace MDIViewPageGui

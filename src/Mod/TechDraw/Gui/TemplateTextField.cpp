@@ -29,21 +29,15 @@
 
 #include "TemplateTextField.h"
 
-//#include<QDebug>
-
 using namespace TechDrawGui;
 
-TemplateTextField::TemplateTextField(QGraphicsItem*parent,
+TemplateTextField::TemplateTextField(QGraphicsItem *parent,
                                      TechDraw::DrawTemplate *myTmplte,
                                      const std::string &myFieldName)
     : QGraphicsRectItem(parent), tmplte(myTmplte), fieldNameStr(myFieldName)
 {
 }
 
-
-TemplateTextField::~TemplateTextField()
-{
-}
 
 void TemplateTextField::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {

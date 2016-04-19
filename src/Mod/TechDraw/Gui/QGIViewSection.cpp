@@ -42,7 +42,7 @@
 
 #include "../App/DrawViewSection.h"
 
-#include "ZVALUE.h"
+#include "../App/GraphicsItems/ZVALUE.h"
 #include "QGIViewSection.h"
 
 using namespace TechDrawGui;

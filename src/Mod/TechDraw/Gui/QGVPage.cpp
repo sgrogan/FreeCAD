@@ -69,7 +69,7 @@
 #include "QGIViewSymbol.h"
 #include "QGIViewClip.h"
 
-#include "ZVALUE.h"
+#include "../App/GraphicsItems/ZVALUE.h"
 #include "QGVPage.h"
 
 #include <QDebug> // TODO: Remove this
@@ -317,15 +317,16 @@ void QGVPage::setPageTemplate(TechDraw::DrawTemplate *obj)
 
     if(obj->isDerivedFrom(TechDraw::DrawParametricTemplate::getClassTypeId())) {
         //TechDraw::DrawParametricTemplate *dwgTemplate = static_cast<TechDraw::DrawParametricTemplate *>(obj);
-        QGIDrawingTemplate *qTempItem = new QGIDrawingTemplate(scene());
+        QGIDrawingTemplate *qTempItem = new QGIDrawingTemplate();
         pageTemplate = qTempItem;
     } else if(obj->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId())) {
         //TechDraw::DrawSVGTemplate *dwgTemplate = static_cast<TechDraw::DrawSVGTemplate *>(obj);
-        QGISVGTemplate *qTempItem = new QGISVGTemplate(scene());
+        QGISVGTemplate *qTempItem = new QGISVGTemplate();
         pageTemplate = qTempItem;
     }
     pageTemplate->setTemplate(obj);
     pageTemplate->updateView();
+    scene()->addItem(pageTemplate);
 }
 
 QGITemplate* QGVPage::getTemplate() const

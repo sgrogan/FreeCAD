@@ -40,6 +40,13 @@ if(QT_QTGUI_LIBRARY AND QT_QTSVG_LIBRARY)
         GraphicsItems/GIPage.cpp
         GraphicsItems/GIPageRenderer.h
         GraphicsItems/GIPageRenderer.cpp
+        GraphicsItems/GITemplate.h
+        GraphicsItems/GITemplate.cpp
+        GraphicsItems/GISVGTemplate.h
+        GraphicsItems/GISVGTemplate.cpp
+        GraphicsItems/GIDrawingTemplate.h
+        GraphicsItems/GIDrawingTemplate.cpp
+        GraphicsItems/ZVALUE.h
         )
 
     fc_wrap_cpp(TechDraw_MOC_SRCS GraphicsItems/GIPageRenderer.h)

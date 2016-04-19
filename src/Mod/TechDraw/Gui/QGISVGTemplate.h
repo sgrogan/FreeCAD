@@ -24,10 +24,11 @@
 #define DRAWINGGUI_QGRAPHICSITEMSVGTEMPLATE_H
 
 #include "QGITemplate.h"
+#include "TemplateTextField.h"
+
 #include <QObject>
 
 QT_BEGIN_NAMESPACE
-class QGraphicsScene;
 class QGraphicsSceneMouseEvent;
 class QGraphicsSvgItem;
 class QSvgRenderer;
@@ -45,7 +46,7 @@ class TechDrawGuiExport QGISVGTemplate : public QObject, public QGITemplate
     Q_OBJECT
 
 public:
-    QGISVGTemplate(QGraphicsScene *);
+    QGISVGTemplate();
     ~QGISVGTemplate();
 
     enum {Type = QGraphicsItem::UserType + 153};
@@ -57,10 +58,13 @@ public:
     virtual void updateView(bool update = false);
 
 protected:
-    TechDraw::DrawSVGTemplate * getSVGTemplate();
     QGraphicsSvgItem *m_svgItem;
     QSvgRenderer *m_svgRender;
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+
+    /// For the modifiable text fields
+    std::vector<TemplateTextField *> textFields;
+
 };  // class QGISVGTemplate
 
 } // namespace MDIViewPageGui

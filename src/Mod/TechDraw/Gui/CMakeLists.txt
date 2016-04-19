@@ -98,7 +98,6 @@ SET(TechDrawGuiView_SRCS
     QGIVertex.h
     QGIDrawingTemplate.cpp
     QGIDrawingTemplate.h
-    QGITemplate.cpp
     QGITemplate.h
     QGIViewCollection.cpp
     QGIViewCollection.h
@@ -120,7 +119,6 @@ SET(TechDrawGuiView_SRCS
     QGIHatch.h
     TemplateTextField.cpp
     TemplateTextField.h
-    ZVALUE.h
 )
 SET(TechDrawGuiViewProvider_SRCS
     ViewProviderPage.cpp

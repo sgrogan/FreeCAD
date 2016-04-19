@@ -49,7 +49,7 @@
 #include "../App/DrawViewPart.h"
 #include "../App/DrawHatch.h"
 
-#include "ZVALUE.h"
+#include "../App/GraphicsItems/ZVALUE.h"
 #include "QGIViewPart.h"
 
 using namespace TechDrawGui;

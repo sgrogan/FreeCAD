@@ -41,13 +41,13 @@
 #include <Mod/TechDraw/App/Geometry.h>
 #include <Mod/TechDraw/App/DrawSVGTemplate.h>
 
-#include "ZVALUE.h"
+#include "../App/GraphicsItems/ZVALUE.h"
 #include "QGISVGTemplate.h"
 
 using namespace TechDrawGui;
 
-QGISVGTemplate::QGISVGTemplate(QGraphicsScene *scene)
-    : QGITemplate(scene)
+QGISVGTemplate::QGISVGTemplate()
+    : QGITemplate()
 {
     m_svgRender = new QSvgRenderer();
 
@@ -82,19 +82,12 @@ void QGISVGTemplate::clearContents()
     textFields.clear();
 }
 
-TechDraw::DrawSVGTemplate * QGISVGTemplate::getSVGTemplate()
-{
-    if(pageTemplate && pageTemplate->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
-        return static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate);
-    else
-        return 0;
-}
 
 void QGISVGTemplate::draw()
 {
-    TechDraw::DrawSVGTemplate *tmplte = getSVGTemplate();
+    auto tmplte(static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate));
 
-    if(!tmplte)
+    if(!tmplte || !tmplte->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
         throw Base::Exception("Template Feature not set for QGISVGTemplate");
 
     auto fileName(QString::fromUtf8(tmplte->PageResult.getValue()));

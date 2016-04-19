@@ -26,7 +26,6 @@
 #include "QGITemplate.h"
 
 QT_BEGIN_NAMESPACE
-class QGraphicsScene;
 class QGraphicsSceneMouseEvent;
 class QGraphicsPathItem;
 QT_END_NAMESPACE
@@ -41,7 +40,7 @@ namespace TechDrawGui
 class TechDrawGuiExport  QGIDrawingTemplate : public QGITemplate
 {
 public:
-    QGIDrawingTemplate(QGraphicsScene *);
+    QGIDrawingTemplate();
     ~QGIDrawingTemplate();
 
     enum {Type = QGraphicsItem::UserType + 151};

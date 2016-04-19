@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) Ian Rees                    (ian.rees@gmail.com) 2015   *
+ *   Copyright (c) 2016                    Ian Rees <ian.rees@gmail.com>   *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -20,44 +20,11 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef DRAWINGGUI_TEMPLATETEXTFIELD_H
-#define DRAWINGGUI_TEMPLATETEXTFIELD_H
+#include "PreCompiled.h"
+#ifndef _PreComp_
+#endif // #ifndef _PreComp_
 
-#include <QGraphicsRectItem>
+#include "GIDrawingTemplate.h"
 
-#include "../App/DrawTemplate.h"
+using namespace TechDraw;
 
-QT_BEGIN_NAMESPACE
-class QGI;
-QT_END_NAMESPACE
-
-namespace TechDrawGui
-{
-    /// QGraphicsRectItem-derived class for the text fields in title blocks
-    /*!
-     * Makes a rectangular area which can be clicked to open up a text editing
-     * dialog.  Changes an appropriate Property in the Drawing's template.
-     */
-    class TechDrawGuiExport TemplateTextField : public QGraphicsRectItem
-    {
-        public:
-            TemplateTextField(QGraphicsItem*parent,
-                              TechDraw::DrawTemplate *myTmplte,
-                              const std::string &myFieldName);
-
-            ~TemplateTextField() = default;
-
-            enum {Type = QGraphicsItem::UserType + 160};
-            int type() const { return Type;}
-
-            /// Returns the field name that this TemplateTextField represents
-            std::string fieldName() const { return fieldNameStr; }
-
-        protected:
-            virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
-            TechDraw::DrawTemplate *tmplte;
-            std::string fieldNameStr;
-    };
-}   // namespace TechDrawGui
-
-#endif // #ifndef DRAWINGGUI_TEMPLATETEXTFIELD_H
