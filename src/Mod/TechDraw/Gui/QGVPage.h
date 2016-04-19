@@ -36,12 +36,13 @@ class DrawViewAnnotation;
 class DrawViewSymbol;
 class DrawViewClip;
 class DrawHatch;
+
+class GITemplate;
 }
 
 namespace TechDrawGui
 {
 class QGIViewDimension;
-class QGITemplate;
 class QGIHatch;
 
 class TechDrawGuiExport QGVPage : public QGraphicsView, public TechDraw::GIPage
@@ -71,10 +72,7 @@ public:
 
     void addDimToParent(QGIViewDimension* dim, QGIView* parent);
     void setPageFeature(TechDraw::DrawPage *page);
-    void setPageTemplate(TechDraw::DrawTemplate *pageTemplate);
 
-    QGITemplate * getTemplate() const;
-    void removeTemplate();
 
     void toggleEdit(bool enable);
 
@@ -101,8 +99,6 @@ protected:
 
     static QColor SelectColor;
     static QColor PreselectColor;
-
-    QGITemplate *pageTemplate;
 
 private:
     RendererType m_renderer;

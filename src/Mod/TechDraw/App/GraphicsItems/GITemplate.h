@@ -44,8 +44,6 @@ public:
 
     TechDraw::DrawTemplate * getTemplate() { return pageTemplate; }
 
-    virtual void clearContents() = 0;
-
     // TODO: Might be able to get rid of this?
     virtual void updateView(bool update = false) { draw(); }
 

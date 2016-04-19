@@ -22,9 +22,64 @@
 
 #include "PreCompiled.h"
 #ifndef _PreComp_
+    #include <QFile>
+    #include <QSvgRenderer>
+    #include <QGraphicsSvgItem>
 #endif // #ifndef _PreComp_
+
+#include "../DrawSVGTemplate.h"
 
 #include "GISVGTemplate.h"
 
 using namespace TechDraw;
+
+GISVGTemplate::GISVGTemplate()
+    : m_svgRender(new QSvgRenderer())
+{
+    m_svgItem = new QGraphicsSvgItem();
+    m_svgItem->setSharedRenderer(m_svgRender.get());
+
+    m_svgItem->setFlags(QGraphicsItem::ItemClipsToShape);
+    m_svgItem->setCacheMode(QGraphicsItem::NoCache);
+
+    addToGroup(m_svgItem);
+}
+
+QVariant GISVGTemplate::itemChange( GraphicsItemChange change,
+                                    const QVariant &value )
+{
+    return QGraphicsItemGroup::itemChange(change, value);
+}
+
+void GISVGTemplate::draw()
+{
+    renderSvg();
+}
+
+bool GISVGTemplate::renderSvg()
+{
+    auto tmplte(static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate));
+
+    if(!tmplte || !tmplte->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
+        throw Base::Exception("Template Feature not set for QGISVGTemplate");
+
+    auto filename(QString::fromUtf8(tmplte->PageResult.getValue()));
+    if (!m_svgRender->load(filename)) {
+        return false;
+    }
+
+    m_svgItem->setSharedRenderer(m_svgRender.get());
+
+    QSize size = m_svgRender->defaultSize();
+    double xaspect(tmplte->getWidth() / (double) size.width()),
+           yaspect(tmplte->getHeight() / (double) size.height());
+
+    QTransform qtrans;
+    qtrans.translate(0.f, -tmplte->getHeight());
+    qtrans.scale(xaspect , yaspect);
+    m_svgItem->setTransform(qtrans);
+
+    return true;
+}
+
 

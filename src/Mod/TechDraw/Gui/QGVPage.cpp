@@ -38,27 +38,26 @@
 # include <cmath>
 #endif
 
-#include <Base/Console.h>
-#include <Base/Stream.h>
-#include <Gui/FileDialog.h>
-#include <Gui/WaitCursor.h>
+#include "Base/Console.h"
+#include "Base/Stream.h"
+#include "Gui/FileDialog.h"
+#include "Gui/WaitCursor.h"
 
-#include <Mod/TechDraw/App/Geometry.h>
-#include <Mod/TechDraw/App/DrawTemplate.h>
-#include <Mod/TechDraw/App/DrawSVGTemplate.h>
-#include <Mod/TechDraw/App/DrawParametricTemplate.h>
-#include <Mod/TechDraw/App/DrawViewCollection.h>
-#include <Mod/TechDraw/App/DrawViewDimension.h>
-#include <Mod/TechDraw/App/DrawProjGroup.h>
-#include <Mod/TechDraw/App/DrawViewSection.h>
-#include <Mod/TechDraw/App/DrawViewPart.h>
-#include <Mod/TechDraw/App/DrawViewAnnotation.h>
-#include <Mod/TechDraw/App/DrawViewSymbol.h>
-#include <Mod/TechDraw/App/DrawViewClip.h>
+#include "../App/Geometry.h"
+#include "../App/DrawTemplate.h"
+#include "../App/DrawSVGTemplate.h"
+#include "../App/DrawParametricTemplate.h"
+#include "../App/DrawViewCollection.h"
+#include "../App/DrawViewDimension.h"
+#include "../App/DrawProjGroup.h"
+#include "../App/DrawViewSection.h"
+#include "../App/DrawViewPart.h"
+#include "../App/DrawViewAnnotation.h"
+#include "../App/DrawViewSymbol.h"
+#include "../App/DrawViewClip.h"
 
 #include "ViewProviderPage.h"
 
-#include "QGIDrawingTemplate.h"
 #include "QGISVGTemplate.h"
 #include "QGIViewCollection.h"
 #include "QGIViewDimension.h"
@@ -69,23 +68,21 @@
 #include "QGIViewSymbol.h"
 #include "QGIViewClip.h"
 
+#include "../App/GraphicsItems/GIDrawingTemplate.h"
 #include "../App/GraphicsItems/ZVALUE.h"
-#include "QGVPage.h"
 
-#include <QDebug> // TODO: Remove this
+#include "QGVPage.h"
 
 using namespace TechDrawGui;
 
 QGVPage::QGVPage(TechDraw::DrawPage *page, QWidget *parent)
     : QGraphicsView(parent),
       GIPage(page, parent),
-      pageTemplate(0),
       m_renderer(Native),
       drawBkg(true),
       m_backgroundItem(0),
       m_outlineItem(0)
 {
-    qDebug() << "Constructing QGVPage";
     setScene(m_scene);
 
     const char *name = m_page->getNameInDocument();
@@ -309,40 +306,7 @@ void QGVPage::setPageFeature(TechDraw::DrawPage *page)
 #endif
 }
 
-void QGVPage::setPageTemplate(TechDraw::DrawTemplate *obj)
-{
-    // Remove currently set background template
-    // Assign a base template class and create object dependent on
-    removeTemplate();
 
-    if(obj->isDerivedFrom(TechDraw::DrawParametricTemplate::getClassTypeId())) {
-        //TechDraw::DrawParametricTemplate *dwgTemplate = static_cast<TechDraw::DrawParametricTemplate *>(obj);
-        QGIDrawingTemplate *qTempItem = new QGIDrawingTemplate();
-        pageTemplate = qTempItem;
-    } else if(obj->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId())) {
-        //TechDraw::DrawSVGTemplate *dwgTemplate = static_cast<TechDraw::DrawSVGTemplate *>(obj);
-        QGISVGTemplate *qTempItem = new QGISVGTemplate();
-        pageTemplate = qTempItem;
-    }
-    pageTemplate->setTemplate(obj);
-    pageTemplate->updateView();
-    scene()->addItem(pageTemplate);
-}
-
-QGITemplate* QGVPage::getTemplate() const
-{
-    return pageTemplate;
-}
-
-void QGVPage::removeTemplate()
-{
-    if(pageTemplate) {
-        scene()->removeItem(pageTemplate);
-        //TODO: deleteLater if derived from QObject, delete now otherwise
-//        pageTemplate->deleteLater();
-        pageTemplate = 0;
-    }
-}
 void QGVPage::setRenderer(RendererType type)
 {
     m_renderer = type;
@@ -425,7 +389,6 @@ void QGVPage::toggleEdit(bool enable)
 
 void QGVPage::saveSvg(QString filename)
 {
-    qDebug() << "In QGVPage::saveSvg()";//TODO: Remove this
     // fiddle cache, cosmetic lines, vertices, etc
     Gui::Selection().clearSelection();
     toggleEdit(false);
@@ -481,8 +444,6 @@ void QGVPage::mouseReleaseEvent(QMouseEvent *event)
 
 int QGVPage::attachView(App::DocumentObject *obj)
 {
-    qDebug() << "in QGVPage::attachView";
-    
     QGIView *qview(nullptr);
 
     auto typeId(obj->getTypeId());
@@ -516,13 +477,20 @@ int QGVPage::attachView(App::DocumentObject *obj)
 
 void QGVPage::attachTemplate(TechDraw::DrawTemplate *obj)
 {
-    setPageTemplate(obj);
+    // TODO: Assign a base template class and create object dependent on
+    removeTemplate();
 
-    double width  =  obj->Width.getValue();
-    double height =  obj->Height.getValue();
+    if(obj->isDerivedFrom(TechDraw::DrawParametricTemplate::getClassTypeId())) {
+        pageTemplate.reset( new TechDraw::GIDrawingTemplate );
+    } else if(obj->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId())) {
+        pageTemplate.reset( new QGISVGTemplate );
+    }
 
-    //the +/- 1 is because of the way the template is define???
-    scene()->setSceneRect(QRectF(-1., -height, width+1., height));
+    pageTemplate->setTemplate(obj);
+    pageTemplate->updateView();
+    scene()->addItem(pageTemplate.get());
+
+    setSceneLimits();
 }
 
 #include "moc_QGVPage.cpp"

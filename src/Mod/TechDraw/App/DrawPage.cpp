@@ -49,7 +49,6 @@
 
 #include "DrawPagePy.h"  // generated from DrawPagePy.xml
 
-#include <QDebug> // TODO: Remove this when done debugging
 using namespace TechDraw;
 using namespace std;
 
@@ -67,7 +66,6 @@ const char* DrawPage::ProjectionTypeEnums[] = { "First Angle",
 DrawPage::DrawPage(void) :
     giPage(nullptr)
 {
-    qDebug() << "Constructing DrawPage";
     static const char *group = "Page";
 
     ADD_PROPERTY_TYPE(Template, (0), group, (App::PropertyType)(App::Prop_None), "Attached Template");

@@ -23,14 +23,40 @@
 #ifndef GISVGTEMPLATE_HEADER
 #define GISVGTEMPLATE_HEADER
 
+#include <memory>
+
+#include "GITemplate.h"
+
+QT_BEGIN_NAMESPACE
+class QSvgRenderer;
+class QGraphicsSvgItem;
+QT_END_NAMESPACE
+
 namespace TechDraw {
 
 /// Uses a SVG image as the template/background and allows modification of text
-class TechDrawExport GISVGTemplate
+class TechDrawExport GISVGTemplate : virtual public GITemplate
 {
 public:
-    GISVGTemplate() = default;
+    GISVGTemplate();
     virtual ~GISVGTemplate() = default;
+
+    enum {Type = QGraphicsItem::UserType + 153};
+    int type() const { return Type; }
+
+    virtual void draw();
+
+protected:
+    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+
+    /// helper for draw(), but has return value used by QGISVGTemplate
+    bool renderSvg();
+    
+    // TODO: Smart pointer?
+    QGraphicsSvgItem *m_svgItem;
+    
+    /// Does the heavy lifting
+    std::unique_ptr<QSvgRenderer> m_svgRender;
 
 };  // end class GISVGTemplate
 

@@ -38,7 +38,7 @@
 
 #include <qmath.h>
 
-#include <Base/Console.h>
+#include "Base/Console.h"
 
 #include "../App/DrawViewSection.h"
 

@@ -28,7 +28,6 @@ set(TechDrawGui_LIBS
 set(TechDrawGui_MOC_HDRS
     MDIViewPage.h
     QGVPage.h
-    QGISVGTemplate.h
     QGIViewDimension.h
     QGIViewPart.h
     QGIViewSection.h
@@ -96,8 +95,6 @@ SET(TechDrawGuiView_SRCS
     QGISVGTemplate.h
     QGIVertex.cpp
     QGIVertex.h
-    QGIDrawingTemplate.cpp
-    QGIDrawingTemplate.h
     QGITemplate.h
     QGIViewCollection.cpp
     QGIViewCollection.h

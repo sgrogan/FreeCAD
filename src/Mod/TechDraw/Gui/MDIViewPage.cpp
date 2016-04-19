@@ -88,7 +88,6 @@
 #include <Mod/TechDraw/App/DrawHatch.h>
 #include "../App/GraphicsItems/GIBase.h"
 
-#include "QGIDrawingTemplate.h"
 #include "QGIViewPart.h"
 #include "QGIViewDimension.h"
 #include "QGIViewClip.h"
@@ -482,7 +481,7 @@ void MDIViewPage::updateTemplate(bool forceUpdate)
         if(forceUpdate ||
            (templObj && templObj->isTouched() && templObj->isDerivedFrom(TechDraw::DrawTemplate::getClassTypeId())) ) {
 
-            QGITemplate *qItemTemplate = m_view->getTemplate();
+            auto qItemTemplate(m_view->getTemplate());
 
             if(qItemTemplate) {
                 TechDraw::DrawTemplate *pageTemplate = dynamic_cast<TechDraw::DrawTemplate *>(templObj);

@@ -23,17 +23,33 @@
 #ifndef GIDRAWINGTEMPLATE_HEADER
 #define GIDRAWINGTEMPLATE_HEADER
 
+#include "GITemplate.h"
+#include "../DrawParametricTemplate.h"
+
+QT_BEGIN_NAMESPACE
+class QGraphicsPathItem;
+QT_END_NAMESPACE
+
 namespace TechDraw {
 
-/// 
-/*!
- */
-class TechDrawExport GIDrawingTemplate
+/// Template, but looks very similar to some of the part drawing code...
+class TechDrawExport GIDrawingTemplate : virtual public GITemplate
 {
 public:
-    GIDrawingTemplate() = default;
+    GIDrawingTemplate();
     virtual ~GIDrawingTemplate() = default;
+    
+    enum {Type = QGraphicsItem::UserType + 151};
+    int type() const { return Type; }
 
+    void draw();
+    virtual void updateView(bool update = false);
+
+protected:
+    TechDraw::DrawParametricTemplate * getParametricTemplate();
+
+    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+    std::unique_ptr<QGraphicsPathItem> pathItem;
 };  // end class GIDrawingTemplate
 
 };  // end namespace TechDraw

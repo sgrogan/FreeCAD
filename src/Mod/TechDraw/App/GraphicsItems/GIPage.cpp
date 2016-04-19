@@ -22,10 +22,13 @@
 
 #include "PreCompiled.h"
 #ifndef _PreComp_
-# include <QSvgGenerator>
-# include <QPainter>
+    #include <QSvgGenerator>
+    #include <QPainter>
 #endif // #ifndef _PreComp_
 
+#include "Base/Console.h"
+
+#include "../DrawParametricTemplate.h"
 #include "../DrawProjGroup.h"
 #include "../DrawSVGTemplate.h"
 #include "../DrawViewSection.h"
@@ -38,6 +41,8 @@
 
 #include "GIBase.h"
 #include "GICollection.h"
+#include "GIDrawingTemplate.h"
+#include "GISVGTemplate.h"
 
 #include "GIPage.h"
 
@@ -51,6 +56,13 @@ GIPage::GIPage(DrawPage *page, QObject *sceneParent) :
     assert(m_page);
     m_page->registerGi(this);
 }
+
+
+GIPage::~GIPage()
+{
+    m_page->deregisterGi(this);
+}
+
 
 // Note that if the GUI is running, the calls to attachView() will
 // go to the overrides in QGVPage.
@@ -90,10 +102,10 @@ void GIPage::attachViews()
 */
     App::DocumentObject *obj = m_page->Template.getValue();
     if(obj && obj->isDerivedFrom(DrawTemplate::getClassTypeId())) {
-        DrawTemplate *pageTemplate = dynamic_cast<DrawTemplate *>(obj);
-        attachTemplate(pageTemplate);
+        attachTemplate(dynamic_cast<DrawTemplate *>(obj));
     }
 }
+
 
 int GIPage::addView(GIBase *view)
 {
@@ -121,6 +133,7 @@ int GIPage::addView(GIBase *view)
     return views.size();
 }
 
+
 GIBase * GIPage::findView(App::DocumentObject *obj) const
 {
     for(const auto it : views) {
@@ -131,6 +144,7 @@ GIBase * GIPage::findView(App::DocumentObject *obj) const
 
     return nullptr;
 }
+
 
 GIBase * GIPage::findParent(GIBase *view) const
 {
@@ -176,10 +190,6 @@ GIBase * GIPage::findParent(GIBase *view) const
     return 0;
 }
 
-GIPage::~GIPage()
-{
-    m_page->deregisterGi(this);
-}
 
 void GIPage::saveSvg(QString filename)
 {
@@ -217,10 +227,9 @@ void GIPage::saveSvg(QString filename)
     p.end();
 }
 
+
 int GIPage::attachView(App::DocumentObject *obj)
 {
-    qDebug() << "in GIPage::attachView";
-
     GIBase *view(nullptr);
 
     auto typeId(obj->getTypeId());
@@ -250,7 +259,7 @@ int GIPage::attachView(App::DocumentObject *obj)
         qDebug() << "Should add Clip";
 //        view = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
     } else {
-      //  Base::Console().Log("Logic Error - Unknown view type in GIPage::attachView()");
+        Base::Console().Log("Logic Error - Unknown view type in GIPage::attachView()");
         assert(0);
     }
 
@@ -260,8 +269,52 @@ int GIPage::attachView(App::DocumentObject *obj)
         return views.size();
 }
 
+
+TechDraw::GITemplate* GIPage::getTemplate() const
+{
+    return pageTemplate.get();
+}
+
+
+void GIPage::removeTemplate()
+{
+    if(pageTemplate) {
+        m_scene->removeItem(pageTemplate.get());
+        pageTemplate.reset();
+    }
+}
+
+
 void GIPage::attachTemplate(TechDraw::DrawTemplate *obj)
 {
-    assert(0);  // TODO: Implement this
+    removeTemplate();
+
+    if(obj->isDerivedFrom(DrawParametricTemplate::getClassTypeId())) {
+        pageTemplate.reset( new GIDrawingTemplate );
+    } else if(obj->isDerivedFrom(DrawSVGTemplate::getClassTypeId())) {
+        pageTemplate.reset( new GISVGTemplate );
+    }
+
+    pageTemplate->setTemplate(obj);
+    pageTemplate->updateView();
+    m_scene->addItem(pageTemplate.get());
+
+    setSceneLimits();
+}
+
+
+void GIPage::setSceneLimits()
+{
+    if (!pageTemplate) {
+        return;
+    }
+
+    auto drawTemplate(pageTemplate->getTemplate());
+
+    auto width( drawTemplate->Width.getValue() );
+    auto height( drawTemplate->Height.getValue() );
+
+    //the +/- 1 is because of the way the template is define???
+    m_scene->setSceneRect(QRectF(-1., -height, width+1., height));
 }
 

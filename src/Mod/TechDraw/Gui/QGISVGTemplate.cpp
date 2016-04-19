@@ -29,6 +29,7 @@
 #include <QSvgRenderer>
 #include <QGraphicsSvgItem>
 #include <strstream>
+#include <string>
 #include <boost/regex.hpp>
 #endif // #ifndef _PreComp_
 
@@ -42,34 +43,14 @@
 #include <Mod/TechDraw/App/DrawSVGTemplate.h>
 
 #include "../App/GraphicsItems/ZVALUE.h"
+
 #include "QGISVGTemplate.h"
 
 using namespace TechDrawGui;
 
-QGISVGTemplate::QGISVGTemplate()
-    : QGITemplate()
-{
-    m_svgRender = new QSvgRenderer();
-
-    m_svgItem = new QGraphicsSvgItem();
-    m_svgItem->setSharedRenderer(m_svgRender);
-
-    m_svgItem->setFlags(QGraphicsItem::ItemClipsToShape);
-    m_svgItem->setCacheMode(QGraphicsItem::NoCache);
-
-    addToGroup(m_svgItem);
-}
-
 QGISVGTemplate::~QGISVGTemplate()
 {
     clearContents();
-    delete m_svgRender;
-}
-
-QVariant QGISVGTemplate::itemChange(GraphicsItemChange change,
-                                              const QVariant &value)
-{
-    return QGraphicsItemGroup::itemChange(change, value);
 }
 
 
@@ -85,36 +66,16 @@ void QGISVGTemplate::clearContents()
 
 void QGISVGTemplate::draw()
 {
+    // Ensures that pageTemplate is valid and refers to a renderable SVG file
+    if (!renderSvg())
+        return;
+
     auto tmplte(static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate));
-
-    if(!tmplte || !tmplte->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
-        throw Base::Exception("Template Feature not set for QGISVGTemplate");
-
-    auto fileName(QString::fromUtf8(tmplte->PageResult.getValue()));
 
     clearContents();
 
-    if (fileName.isEmpty()){
-        return;
-    }
-
-    QFile file(fileName);
-    if (!file.exists()) {
-        return;
-    }
-    m_svgRender->load(file.fileName());
-
-    QSize size = m_svgRender->defaultSize();
-    //Base::Console().Log("size of svg document <%i,%i>", size.width(), size.height());
-    m_svgItem->setSharedRenderer(m_svgRender);
-
-
-    //std::string temp = tmplte->Template.getValue();
-    std::string temp = tmplte->PageResult.getValue();                    //fixes non-drawing of restored template
-    if (temp.empty())
-        return;
-
-    Base::FileInfo fi(temp);
+    // tmplte->PageResult is the file name of the template
+    Base::FileInfo fi( tmplte->PageResult.getValue() );
 
     // make a temp file for FileIncluded Property
     std::string tempName = tmplte->PageResult.getExchangeTempFile();
@@ -159,22 +120,17 @@ void QGISVGTemplate::draw()
              boost::regex_search(tagMatch[1].first, tagMatch[1].second, xMatch, xRegex) &&
              boost::regex_search(tagMatch[1].first, tagMatch[1].second, yMatch, yRegex) ) {
 
-            QString xStr = QString::fromStdString(xMatch[1].str());
-            QString yStr = QString::fromStdString(yMatch[1].str());
-            QString editableName = QString::fromStdString(nameMatch[1].str());
-
-            double x = xStr.toDouble();
-            double y = yStr.toDouble();
-
             //TODO: this should probably be configurable without a code change
-            double editClickBoxSize = 1.5;
-            QColor editClickBoxColor = Qt::green;
+            auto editClickBoxSize( 1.5 );
+            auto editClickBoxColor( Qt::green );
 
-            double width = editClickBoxSize;
-            double height = editClickBoxSize;
+            auto width( editClickBoxSize );
+            auto height( editClickBoxSize );
 
-            TemplateTextField *item = new TemplateTextField(this, tmplte, nameMatch[1].str());
-            float pad = 1;
+            auto x( std::stod(xMatch[1].str()) ),
+                 y( std::stod(yMatch[1].str()) );
+            auto *item( new TemplateTextField(this, tmplte, nameMatch[1].str()) );
+            auto pad( 1.0 );
             item->setRect(x - pad, -tmplte->getHeight() + y - height - pad,
                           width + 2 * pad, height + 2 * pad);
 
@@ -193,15 +149,6 @@ void QGISVGTemplate::draw()
 
         begin = tagMatch[0].second;
     }
-
-    double xaspect, yaspect;
-    xaspect = tmplte->getWidth() / (double) size.width();
-    yaspect = tmplte->getHeight() / (double) size.height();
-
-    QTransform qtrans;
-    qtrans.translate(0.f, -tmplte->getHeight());
-    qtrans.scale(xaspect , yaspect);
-    m_svgItem->setTransform(qtrans);
 }
 
 void QGISVGTemplate::updateView(bool update)
@@ -209,4 +156,3 @@ void QGISVGTemplate::updateView(bool update)
     draw();
 }
 
-#include "moc_QGISVGTemplate.cpp"

@@ -24,9 +24,11 @@
 #define GIPAGE_HEADER
 
 #include <QGraphicsScene>
+#include <memory>
 
 #include "../DrawPage.h"
 #include "GIBase.h"
+#include "GITemplate.h"
 
 namespace TechDraw {
 
@@ -70,10 +72,19 @@ public:
 
     /// Attaches view represented by obj to this
     virtual int attachView(App::DocumentObject *obj);
+
+    /// Getter, for the current template
+    GITemplate * getTemplate() const;
+    
+    /// Removes template from the page
+    void removeTemplate();
     
 protected:
     /// As attachView (TODO: Perhaps roll this in to attachView?)
     virtual void attachTemplate(DrawTemplate *obj);
+
+    /// Helpful when changing templates
+    void setSceneLimits();
 
     /// The views that belong on this page
     std::vector<GIBase *> views;
@@ -81,6 +92,9 @@ protected:
     /// Pointer to DrawPage we are attached to
     // TODO: Replace this with a smart pointer?
     DrawPage *m_page;
+
+    /// Pointer to the currently active template
+    std::unique_ptr<TechDraw::GITemplate> pageTemplate;
 
     /// Our raison d'etre - the graphics scene!
     QGraphicsScene *m_scene;

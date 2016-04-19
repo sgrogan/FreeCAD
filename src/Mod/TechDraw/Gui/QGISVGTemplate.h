@@ -23,15 +23,11 @@
 #ifndef DRAWINGGUI_QGRAPHICSITEMSVGTEMPLATE_H
 #define DRAWINGGUI_QGRAPHICSITEMSVGTEMPLATE_H
 
-#include "QGITemplate.h"
+#include "../App/GraphicsItems/GISVGTemplate.h"
 #include "TemplateTextField.h"
-
-#include <QObject>
 
 QT_BEGIN_NAMESPACE
 class QGraphicsSceneMouseEvent;
-class QGraphicsSvgItem;
-class QSvgRenderer;
 QT_END_NAMESPACE
 
 namespace TechDraw {
@@ -41,16 +37,11 @@ class DrawSVGTemplate;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGISVGTemplate : public QObject, public QGITemplate
+class TechDrawGuiExport QGISVGTemplate : virtual public TechDraw::GISVGTemplate
 {
-    Q_OBJECT
-
 public:
-    QGISVGTemplate();
+    QGISVGTemplate() = default;
     ~QGISVGTemplate();
-
-    enum {Type = QGraphicsItem::UserType + 153};
-    int type() const { return Type; }
 
     /// Currently just frees up textFields
     void clearContents();
@@ -58,13 +49,9 @@ public:
     virtual void updateView(bool update = false);
 
 protected:
-    QGraphicsSvgItem *m_svgItem;
-    QSvgRenderer *m_svgRender;
-    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
     /// For the modifiable text fields
     std::vector<TemplateTextField *> textFields;
-
 };  // class QGISVGTemplate
 
 } // namespace MDIViewPageGui
