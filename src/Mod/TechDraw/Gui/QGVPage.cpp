@@ -337,7 +337,8 @@ void QGVPage::removeTemplate()
 {
     if(pageTemplate) {
         scene()->removeItem(pageTemplate);
-        pageTemplate->deleteLater();
+        //TODO: deleteLater if derived from QObject, delete now otherwise
+//        pageTemplate->deleteLater();
         pageTemplate = 0;
     }
 }

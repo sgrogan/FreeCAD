@@ -24,7 +24,6 @@
 #define DRAWINGGUI_QGRAPHICSITEMTEMPLATE_H
 
 #include <QGraphicsItemGroup>
-#include <QObject>
 
 #include "TemplateTextField.h"
 
@@ -39,10 +38,8 @@ class DrawTemplate;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGITemplate : public QObject, public QGraphicsItemGroup
+class TechDrawGuiExport QGITemplate : public QGraphicsItemGroup
 {
-    Q_OBJECT
-
 public:
     QGITemplate(QGraphicsScene *);
     ~QGITemplate();

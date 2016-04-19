@@ -73,4 +73,3 @@ void QGITemplate::updateView(bool update)
     draw();
 }
 
-#include "moc_QGITemplate.cpp"

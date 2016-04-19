@@ -24,6 +24,7 @@
 #define DRAWINGGUI_QGRAPHICSITEMSVGTEMPLATE_H
 
 #include "QGITemplate.h"
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 class QGraphicsScene;
@@ -39,7 +40,7 @@ class DrawSVGTemplate;
 namespace TechDrawGui
 {
 
-class TechDrawGuiExport QGISVGTemplate : public QGITemplate
+class TechDrawGuiExport QGISVGTemplate : public QObject, public QGITemplate
 {
     Q_OBJECT
 
@@ -54,10 +55,6 @@ public:
     void clearContents();
     void draw();
     virtual void updateView(bool update = false);
-
-protected:
-    void openFile(const QFile &file);
-    void load (const QString & fileName);
 
 protected:
     TechDraw::DrawSVGTemplate * getSVGTemplate();

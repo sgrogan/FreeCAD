@@ -28,9 +28,7 @@ set(TechDrawGui_LIBS
 set(TechDrawGui_MOC_HDRS
     MDIViewPage.h
     QGVPage.h
-    QGITemplate.h
     QGISVGTemplate.h
-    QGIDrawingTemplate.h
     QGIViewDimension.h
     QGIViewPart.h
     QGIViewSection.h

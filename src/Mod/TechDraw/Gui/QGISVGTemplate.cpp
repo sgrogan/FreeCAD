@@ -82,13 +82,23 @@ void QGISVGTemplate::clearContents()
     textFields.clear();
 }
 
-void QGISVGTemplate::openFile(const QFile &file)
+TechDraw::DrawSVGTemplate * QGISVGTemplate::getSVGTemplate()
 {
-
+    if(pageTemplate && pageTemplate->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
+        return static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate);
+    else
+        return 0;
 }
 
-void QGISVGTemplate::load(const QString &fileName)
+void QGISVGTemplate::draw()
 {
+    TechDraw::DrawSVGTemplate *tmplte = getSVGTemplate();
+
+    if(!tmplte)
+        throw Base::Exception("Template Feature not set for QGISVGTemplate");
+
+    auto fileName(QString::fromUtf8(tmplte->PageResult.getValue()));
+
     clearContents();
 
     if (fileName.isEmpty()){
@@ -104,8 +114,6 @@ void QGISVGTemplate::load(const QString &fileName)
     QSize size = m_svgRender->defaultSize();
     //Base::Console().Log("size of svg document <%i,%i>", size.width(), size.height());
     m_svgItem->setSharedRenderer(m_svgRender);
-
-    TechDraw::DrawSVGTemplate *tmplte = getSVGTemplate();
 
 
     //std::string temp = tmplte->Template.getValue();
@@ -201,23 +209,6 @@ void QGISVGTemplate::load(const QString &fileName)
     qtrans.translate(0.f, -tmplte->getHeight());
     qtrans.scale(xaspect , yaspect);
     m_svgItem->setTransform(qtrans);
-}
-
-TechDraw::DrawSVGTemplate * QGISVGTemplate::getSVGTemplate()
-{
-    if(pageTemplate && pageTemplate->isDerivedFrom(TechDraw::DrawSVGTemplate::getClassTypeId()))
-        return static_cast<TechDraw::DrawSVGTemplate *>(pageTemplate);
-    else
-        return 0;
-}
-
-void QGISVGTemplate::draw()
-{
-    TechDraw::DrawSVGTemplate *tmplte = getSVGTemplate();
-    if(!tmplte)
-        throw Base::Exception("Template Feature not set for QGISVGTemplate");
-
-    load(QString::fromUtf8(tmplte->PageResult.getValue()));
 }
 
 void QGISVGTemplate::updateView(bool update)

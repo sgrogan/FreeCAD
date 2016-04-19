@@ -40,8 +40,6 @@ namespace TechDrawGui
 
 class TechDrawGuiExport  QGIDrawingTemplate : public QGITemplate
 {
-    Q_OBJECT
-
 public:
     QGIDrawingTemplate(QGraphicsScene *);
     ~QGIDrawingTemplate();
