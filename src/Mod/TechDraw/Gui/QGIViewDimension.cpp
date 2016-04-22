@@ -241,7 +241,7 @@ void QGIViewDimension::updateView(bool update)
         return;
     TechDraw::DrawViewDimension *dim = dynamic_cast<TechDraw::DrawViewDimension*>(getViewObject());
 
-    std::vector<App::DocumentObject *> refs = dim->References.getValues();
+    std::vector<App::DocumentObject *> refs = dim->References2D.getValues();
 
     QGIDatumLabel *dLabel = dynamic_cast<QGIDatumLabel *>(datumLabel);
 
@@ -316,7 +316,7 @@ void QGIViewDimension::draw()
     TechDraw::DrawViewDimension *dim = dynamic_cast<TechDraw::DrawViewDimension *>(getViewObject());
     if((!dim) ||                                                       //nothing to draw, don't try
        (!dim->isDerivedFrom(TechDraw::DrawViewDimension::getClassTypeId())) ||
-       (!dim->hasReferences()) ) {
+       (!dim->has2DReferences()) ) {
         return;
     }
 
@@ -340,8 +340,8 @@ void QGIViewDimension::draw()
     Base::Vector3d lblCenter(lbl->X(), lbl->Y(), 0);
 
     //we always draw based on Projected geometry.
-    //const std::vector<App::DocumentObject*> &objects = dim->References.getValues();
-    const std::vector<std::string> &SubNames         = dim->References.getSubValues();
+    //const std::vector<App::DocumentObject*> &objects = dim->References2D.getValues();
+    const std::vector<std::string> &SubNames         = dim->References2D.getSubValues();
 
     const char *dimType = dim->Type.getValueAsString();
 
@@ -349,7 +349,7 @@ void QGIViewDimension::draw()
        strcmp(dimType, "DistanceX") == 0 ||
        strcmp(dimType, "DistanceY") == 0) {
         Base::Vector3d distStart, distEnd;
-        if((dim->References.getValues().size() == 1) &&
+        if((dim->References2D.getValues().size() == 1) &&
            (DrawUtil::getGeomTypeFromName(SubNames[0]) == "Edge")) {
             int idx = DrawUtil::getIndexFromName(SubNames[0]);
             TechDrawGeometry::BaseGeom* geom = refObj->getProjEdgeByIndex(idx);
@@ -367,7 +367,7 @@ void QGIViewDimension::draw()
             } else {
                 throw Base::Exception("FVD::draw - Original edge not found or is invalid type (1)");
             }
-        } else if(dim->References.getValues().size() == 2 &&
+        } else if(dim->References2D.getValues().size() == 2 &&
                   DrawUtil::getGeomTypeFromName(SubNames[0]) == "Vertex" &&
                   DrawUtil::getGeomTypeFromName(SubNames[1]) == "Vertex") {
             int idx0 = DrawUtil::getIndexFromName(SubNames[0]);
@@ -382,7 +382,7 @@ void QGIViewDimension::draw()
             }
             distStart = Base::Vector3d (v0->pnt.fX, v0->pnt.fY, 0.);
             distEnd = Base::Vector3d (v1->pnt.fX, v1->pnt.fY, 0.);
-        } else if(dim->References.getValues().size() == 2 &&
+        } else if(dim->References2D.getValues().size() == 2 &&
             DrawUtil::getGeomTypeFromName(SubNames[0]) == "Edge" &&
             DrawUtil::getGeomTypeFromName(SubNames[1]) == "Edge") {
             int idx0 = DrawUtil::getIndexFromName(SubNames[0]);
@@ -588,7 +588,7 @@ void QGIViewDimension::draw()
         Base::Vector3d lblCenter(label->X(), label->Y(), 0);
         double radius;
 
-        if(dim->References.getValues().size() == 1 &&
+        if(dim->References2D.getValues().size() == 1 &&
            DrawUtil::getGeomTypeFromName(SubNames[0]) == "Edge") {
             int idx = DrawUtil::getIndexFromName(SubNames[0]);
             TechDrawGeometry::BaseGeom *geom = refObj->getProjEdgeByIndex(idx);
@@ -853,7 +853,7 @@ void QGIViewDimension::draw()
 
         Base::Vector3d pointOnCurve,curveCenter;
         double radius;
-        if(dim->References.getValues().size() == 1 &&
+        if(dim->References2D.getValues().size() == 1 &&
            DrawUtil::getGeomTypeFromName(SubNames[0]) == "Edge") {
             int idx = DrawUtil::getIndexFromName(SubNames[0]);
             TechDrawGeometry::BaseGeom* geom = refObj->getProjEdgeByIndex(idx);
@@ -963,7 +963,7 @@ void QGIViewDimension::draw()
 
     } else if(strcmp(dimType, "Angle") == 0) {
         // Only use two straight line edeges for angle
-        if(dim->References.getValues().size() == 2 &&
+        if(dim->References2D.getValues().size() == 2 &&
            DrawUtil::getGeomTypeFromName(SubNames[0]) == "Edge" &&
            DrawUtil::getGeomTypeFromName(SubNames[1]) == "Edge") {
             int idx0 = DrawUtil::getIndexFromName(SubNames[0]);
