@@ -70,9 +70,6 @@ Q_SIGNALS:
     void selected(bool state);  //TODO: Doesn't look like we ever connect to this?
 
 protected:
-    QGIEdge * findRefEdge(int i);
-    QGIVertex * findRefVertex(int idx);
-
     /// Helper for pathArc()
     /*!
      * x_axis_rotation is in radian
