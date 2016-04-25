@@ -75,10 +75,13 @@ public:
 
     /// Getter, for the current template
     GITemplate * getTemplate() const;
-    
+
     /// Removes template from the page
     void removeTemplate();
-    
+
+    // Getter for DrawPage feature
+    DrawPage* getDrawPage() {return m_page;};
+
 protected:
     /// As attachView (TODO: Perhaps roll this in to attachView?)
     virtual void attachTemplate(DrawTemplate *obj);
@@ -103,4 +106,3 @@ protected:
 };  // end namespace TechDraw
 
 #endif // #ifndef GIPAGE_HEADER
-

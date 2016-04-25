@@ -36,6 +36,7 @@ class DrawViewAnnotation;
 class DrawViewSymbol;
 class DrawViewClip;
 class DrawHatch;
+class DrawViewCollection;
 
 class GITemplate;
 }
@@ -44,6 +45,7 @@ namespace TechDrawGui
 {
 class QGIViewDimension;
 class QGIHatch;
+class QGIView;
 
 class TechDrawGuiExport QGVPage : public QGraphicsView, public TechDraw::GIPage
 {
