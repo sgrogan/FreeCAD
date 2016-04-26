@@ -38,6 +38,7 @@
 #include "../DrawViewAnnotation.h"
 #include "../DrawViewSymbol.h"
 #include "../DrawViewClip.h"
+#include "../DrawHatch.h"
 
 #include "GIBase.h"
 #include "GICollection.h"
@@ -258,6 +259,9 @@ int GIPage::attachView(App::DocumentObject *obj)
     } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
         qDebug() << "Should add Clip";
 //        view = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawHatch::getClassTypeId()) ) {
+        qDebug() << "Should add Hatch";
+//        Hatch doesn't get an addXXX method, but don't want assert triggered.
     } else {
         Base::Console().Log("Logic Error - Unknown view type in GIPage::attachView()");
         assert(0);
@@ -317,4 +321,3 @@ void GIPage::setSceneLimits()
     //the +/- 1 is because of the way the template is define???
     m_scene->setSceneRect(QRectF(-1., -height, width+1., height));
 }
-

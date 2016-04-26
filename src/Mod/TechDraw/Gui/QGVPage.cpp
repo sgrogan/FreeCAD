@@ -55,6 +55,7 @@
 #include "../App/DrawViewAnnotation.h"
 #include "../App/DrawViewSymbol.h"
 #include "../App/DrawViewClip.h"
+#include "../App/DrawHatch.h"
 
 #include "ViewProviderPage.h"
 
@@ -464,6 +465,8 @@ int QGVPage::attachView(App::DocumentObject *obj)
         qview = addDrawViewSymbol( dynamic_cast<TechDraw::DrawViewSymbol *>(obj) );
     } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
         qview = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawHatch::getClassTypeId()) ) {
+        //Hatch is not attached like other Views (since it isn't really a View)
     } else {
         Base::Console().Log("Logic Error - Unknown view type in QGVPage::attachView()");
         assert(0);
