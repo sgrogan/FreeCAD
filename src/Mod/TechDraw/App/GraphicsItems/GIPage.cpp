@@ -39,6 +39,7 @@
 #include "../DrawViewSymbol.h"
 #include "../DrawViewClip.h"
 #include "../DrawHatch.h"
+#include "../DrawViewSpreadsheet.h"
 
 #include "GIBase.h"
 #include "GICollection.h"
@@ -259,6 +260,9 @@ int GIPage::attachView(App::DocumentObject *obj)
     } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
         qDebug() << "Should add Clip";
 //        view = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewSpreadsheet::getClassTypeId()) ) {
+        qDebug() << "Should add Spreadsheet";
+//        view = addDrawViewSpreadsheet( dynamic_cast<TechDraw::DrawViewSpreadsheet *>(obj) );
     } else if(typeId.isDerivedFrom(TechDraw::DrawHatch::getClassTypeId()) ) {
         qDebug() << "Should add Hatch";
 //        Hatch doesn't get an addXXX method, but don't want assert triggered.

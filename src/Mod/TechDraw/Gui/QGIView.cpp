@@ -175,6 +175,7 @@ void QGIView::drawBorder()
     m_border->show();
 }
 
+//This should count everything except Frame,Label,Dimension - custom or not
 QRectF QGIView::customChildrenBoundingRect() {
     QList<QGraphicsItem*> children = childItems();
     int dimItemType = QGraphicsItem::UserType + 106;  // TODO: Magic number warning
@@ -203,4 +204,3 @@ QVariant QGIView::itemChange(GraphicsItemChange change, const QVariant &value)
 
     return GIBase::itemChange(change, value);
 }
-

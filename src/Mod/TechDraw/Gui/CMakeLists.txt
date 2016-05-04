@@ -33,6 +33,7 @@ set(TechDrawGui_MOC_HDRS
     QGIViewSection.h
     QGIViewAnnotation.h
     QGIViewSymbol.h
+    QGIViewSpreadsheet.h
     QGIViewClip.h
     TaskProjGroup.h
     DlgPrefsTechDrawImp.h
@@ -114,6 +115,8 @@ SET(TechDrawGuiView_SRCS
     QGIViewAnnotation.h
     QGIViewSymbol.cpp
     QGIViewSymbol.h
+    QGIViewSpreadsheet.cpp
+    QGIViewSpreadsheet.h
     QGIViewClip.cpp
     QGIViewClip.h
     QGIHatch.cpp
@@ -142,6 +145,8 @@ SET(TechDrawGuiViewProvider_SRCS
     ViewProviderAnnotation.h
     ViewProviderSymbol.cpp
     ViewProviderSymbol.h
+    ViewProviderSpreadsheet.cpp
+    ViewProviderSpreadsheet.h
     ViewProviderViewClip.cpp
     ViewProviderViewClip.h
     ViewProviderHatch.cpp

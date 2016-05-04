@@ -56,6 +56,7 @@
 #include "../App/DrawViewSymbol.h"
 #include "../App/DrawViewClip.h"
 #include "../App/DrawHatch.h"
+#include "../App/DrawViewSpreadsheet.h"
 
 #include "ViewProviderPage.h"
 
@@ -68,6 +69,7 @@
 #include "QGIViewAnnotation.h"
 #include "QGIViewSymbol.h"
 #include "QGIViewClip.h"
+#include "QGIViewSpreadsheet.h"
 
 #include "../App/GraphicsItems/GIDrawingTemplate.h"
 #include "../App/GraphicsItems/ZVALUE.h"
@@ -225,6 +227,16 @@ QGIView * QGVPage::addDrawViewClip(TechDraw::DrawViewClip *view)
 {
     QPoint qp(view->X.getValue(),view->Y.getValue());
     QGIViewClip *qview(new QGIViewClip);
+    qview->setViewFeature(view);
+
+    addView(qview);
+    return qview;
+}
+
+QGIView * QGVPage::addDrawViewSpreadsheet(TechDraw::DrawViewSpreadsheet *view)
+{
+    QGIViewSpreadsheet *qview(new QGIViewSpreadsheet);
+
     qview->setViewFeature(view);
 
     addView(qview);
@@ -465,6 +477,8 @@ int QGVPage::attachView(App::DocumentObject *obj)
         qview = addDrawViewSymbol( dynamic_cast<TechDraw::DrawViewSymbol *>(obj) );
     } else if(typeId.isDerivedFrom(TechDraw::DrawViewClip::getClassTypeId()) ) {
         qview = addDrawViewClip( dynamic_cast<TechDraw::DrawViewClip *>(obj) );
+    } else if(typeId.isDerivedFrom(TechDraw::DrawViewSpreadsheet::getClassTypeId()) ) {
+        qview = addDrawViewSpreadsheet( dynamic_cast<TechDraw::DrawViewSpreadsheet *>(obj) );
     } else if(typeId.isDerivedFrom(TechDraw::DrawHatch::getClassTypeId()) ) {
         //Hatch is not attached like other Views (since it isn't really a View)
     } else {

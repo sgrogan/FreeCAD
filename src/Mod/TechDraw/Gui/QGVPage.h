@@ -37,6 +37,7 @@ class DrawViewSymbol;
 class DrawViewClip;
 class DrawHatch;
 class DrawViewCollection;
+class DrawViewSpreadsheet;
 
 class GITemplate;
 }
@@ -71,6 +72,7 @@ public:
     QGIView * addDrawViewAnnotation(TechDraw::DrawViewAnnotation *view);
     QGIView * addDrawViewSymbol(TechDraw::DrawViewSymbol *view);
     QGIView * addDrawViewClip(TechDraw::DrawViewClip *view);
+    QGIView * addDrawViewSpreadsheet(TechDraw::DrawViewSpreadsheet *view);
 
     void addDimToParent(QGIViewDimension* dim, QGIView* parent);
     void setPageFeature(TechDraw::DrawPage *page);

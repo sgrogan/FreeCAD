@@ -20,6 +20,7 @@ link_directories(${OCC_LIBRARY_DIR})
 set(TechDrawLIBS
     Measure
     Part
+    Spreadsheet
     FreeCADApp)
 
 # Since we use QGraphicsScene and QGraphicsItem - derived classes to render
@@ -92,6 +93,8 @@ SET(Draw_SRCS
     DrawViewAnnotation.h
     DrawViewSymbol.cpp
     DrawViewSymbol.h
+    DrawViewSpreadsheet.cpp
+    DrawViewSpreadsheet.h
     DrawViewClip.cpp
     DrawViewClip.h
     DrawProjGroup.cpp
