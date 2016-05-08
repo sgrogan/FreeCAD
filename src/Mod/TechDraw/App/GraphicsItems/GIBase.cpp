@@ -62,13 +62,6 @@ GIBase::GIBase()
     std::string fontName = hGrp->GetASCII("LabelFont", "osifont");
     m_font.setFamily(QString::fromStdString(fontName));
     m_font.setPointSize(5.0);     //scene units (mm), not points
-
-    m_label = new QGraphicsTextItem();
-    addToGroup(m_label);
-    m_label->setFont(m_font);
-
-    m_border = new QGraphicsRectItem();
-    addToGroup(m_border);
 }
 
 const char * GIBase::getViewName() const
@@ -191,4 +184,3 @@ QVariant GIBase::itemChange(GraphicsItemChange change, const QVariant &value)
 
     return QGraphicsItemGroup::itemChange(change, value);
 }
-

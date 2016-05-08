@@ -36,6 +36,9 @@
 #include "Gui/Selection.h"
 #include "Gui/Command.h"
 
+#include "QGCustomBorder.h"
+#include "QGCustomLabel.h"
+
 #include "QGIView.h"
 
 using namespace TechDrawGui;
@@ -45,6 +48,13 @@ QGIView::QGIView() :
 {
     m_decorPen.setStyle(Qt::DashLine);
     m_decorPen.setWidth(0); // 0 => 1px "cosmetic pen"
+
+    m_label = new QGCustomLabel();
+    addToGroup(m_label);
+    m_label->setFont(m_font);
+
+    m_border = new QGCustomBorder();
+    addToGroup(m_border);
 }
 
 void QGIView::mousePressEvent(QGraphicsSceneMouseEvent * event)
@@ -127,7 +137,7 @@ void QGIView::toggleBorder(bool state)
     drawBorder();
 }
 
-// TODO: Do we want to move the label drawing stuff up into GIBase?
+// TODO: Do we want to move the label drawing stuff up into GIBase?  No. It uses Gui/QGCustomXXX, so better here. -WF
 void QGIView::drawBorder()
 {
     if (!borderVisible) {
@@ -175,17 +185,17 @@ void QGIView::drawBorder()
     m_border->show();
 }
 
-//This should count everything except Frame,Label,Dimension - custom or not
 QRectF QGIView::customChildrenBoundingRect() {
     QList<QGraphicsItem*> children = childItems();
-    int dimItemType = QGraphicsItem::UserType + 106;  // TODO: Magic number warning
+    int dimItemType = QGraphicsItem::UserType + 106;  // TODO: Magic number warning. make include file for custom types?
+    int borderItemType = QGraphicsItem::UserType + 136;  // TODO: Magic number warning
+    int labelItemType = QGraphicsItem::UserType + 135;  // TODO: Magic number warning
     QRectF result;
     for (QList<QGraphicsItem*>::iterator it = children.begin(); it != children.end(); ++it) {
-        if ((*it)->type() >= QGraphicsItem::UserType) {
-            // Dimensions don't count towards bRect
-            if ((*it)->type() != dimItemType) {
-                result = result.united((*it)->boundingRect());
-            }
+        if ( ((*it)->type() != dimItemType) &&
+             ((*it)->type() != borderItemType) &&
+             ((*it)->type() != labelItemType) ) {
+            result = result.united((*it)->boundingRect());
         }
     }
     return result;

@@ -30,6 +30,11 @@
 
 #include "../DrawView.h"
 
+namespace TechDrawGui {
+class QGCustomBorder;
+class QGCustomLabel;
+}
+
 namespace TechDraw {
 
 class TechDrawExport GIBase : public QGraphicsItemGroup
@@ -44,7 +49,7 @@ public:
     const char * getViewName() const;
 
     void setViewFeature(TechDraw::DrawView *obj);
-    TechDraw::DrawView * getViewObject() const;    
+    TechDraw::DrawView * getViewObject() const;
 
     /// Methods to ensure that Y-Coordinates are orientated correctly.
     /// @{
@@ -78,8 +83,8 @@ protected:
     QColor m_colPre;
     QColor m_colSel;
     QFont m_font;
-    QGraphicsRectItem* m_border;
-    QGraphicsTextItem* m_label;
+    TechDrawGui::QGCustomBorder* m_border;
+    TechDrawGui::QGCustomLabel* m_label;
     QHash<QString, QGraphicsItem*> alignHash;
     QPen m_pen;
 };
@@ -87,4 +92,3 @@ protected:
 } // end namespace TechDraw
 
 #endif // #ifndef GIBASE_HEADER
-

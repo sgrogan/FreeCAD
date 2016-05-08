@@ -88,6 +88,10 @@ SET(TechDrawGuiView_SRCS
     QGCustomSvg.h
     QGCustomClip.cpp
     QGCustomClip.h
+    QGCustomLabel.cpp
+    QGCustomLabel.h
+    QGCustomBorder.cpp
+    QGCustomBorder.h
     QGIView.cpp
     QGIView.h
     QGIArrow.cpp
