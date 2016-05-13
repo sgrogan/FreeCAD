@@ -44,7 +44,7 @@ public:
     explicit QGIViewSection() = default;
     ~QGIViewSection() = default;
 
-    virtual void draw();
+    virtual void draw() override;
     void updateView(bool update = false);
     enum {Type = QGraphicsItem::UserType + 108};
     int type() const { return Type;}

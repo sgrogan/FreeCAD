@@ -110,6 +110,10 @@ void QGIViewAnnotation::updateView(bool update)
 
 void QGIViewAnnotation::draw()
 {
+    if (!isVisible()) {
+        return;
+    }
+
     drawAnnotation();
     if (borderVisible) {
         drawBorder();

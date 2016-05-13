@@ -49,6 +49,10 @@ using namespace TechDrawGui;
 
 void QGIViewSection::draw()
 {
+    if (!isVisible()) {
+        return;
+    }
+
     QGIViewPart::draw();
     drawSectionFace();
 }

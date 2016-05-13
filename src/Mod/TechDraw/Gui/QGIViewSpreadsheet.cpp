@@ -63,38 +63,5 @@ void QGIViewSpreadsheet::setViewFeature(TechDraw::DrawViewSpreadsheet *obj)
     QGIView::setViewFeature(static_cast<TechDraw::DrawView *>(obj));
 }
 
-//void QGIViewSpreadsheet::updateView(bool update)
-//{
-//    if(getViewObject() == 0 || !getViewObject()->isDerivedFrom(TechDraw::DrawViewSpreadsheet::getClassTypeId()))
-//        return;
-
-//    TechDraw::DrawViewSpreadsheet *viewSheet = dynamic_cast<TechDraw::DrawViewSpreadsheet *>(getViewObject());
-
-//    if (update ||
-//        viewSheet->isTouched() ||
-//        viewSheet->Symbol.isTouched()) {
-//        draw();
-//    }
-
-//    if (viewSheet->Scale.isTouched()) {
-//        setScale(viewSheet->Scale.getValue());
-//        draw();
-//    }
-//    QGIView::updateView(update);
-
-//}
-
-//void QGIViewSpreadsheet::drawSvg()
-//{
-//   if(getViewObject() == 0 || !getViewObject()->isDerivedFrom(TechDraw::DrawViewSpreadsheet::getClassTypeId()))
-//        return;
-
-//    TechDraw::DrawViewSpreadsheet *viewSheet = dynamic_cast<TechDraw::DrawViewSpreadsheet *>(getViewObject());
-
-//    QString qs(QString::fromUtf8(viewSheet->Symbol.getValue()));
-
-//    symbolToSvg(qs);
-//}
-
 
 #include "moc_QGIViewSpreadsheet.cpp"

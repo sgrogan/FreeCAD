@@ -46,7 +46,9 @@ public:
 
     virtual void toggleBorder(bool state = true);
     virtual void drawBorder(void);
-
+    virtual void isVisible(bool state) { m_visibility = state; };
+    virtual bool isVisible(void) {return m_visibility;};
+    virtual void draw(void);
     void setLocked(bool state = true) { locked = true; }
 
     virtual void toggleCache(bool state);
@@ -57,9 +59,9 @@ public:
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 
 protected:
-
+    bool m_visibility;
     bool borderVisible;
-    
+
         // Mouse handling
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event );
     virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);

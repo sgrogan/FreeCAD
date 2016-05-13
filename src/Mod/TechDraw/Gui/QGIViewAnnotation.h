@@ -51,7 +51,7 @@ public:
     void updateView(bool update = false);
     void setViewAnnoFeature(TechDraw::DrawViewAnnotation *obj);
 
-    virtual void draw();
+    virtual void draw() override;
     virtual QRectF boundingRect() const;
 
 Q_SIGNALS:

@@ -55,6 +55,8 @@ QGIView::QGIView() :
 
     m_border = new QGCustomBorder();
     addToGroup(m_border);
+
+    isVisible(true);
 }
 
 void QGIView::mousePressEvent(QGraphicsSceneMouseEvent * event)
@@ -137,6 +139,15 @@ void QGIView::toggleBorder(bool state)
     drawBorder();
 }
 
+void QGIView::draw()
+{
+    if (isVisible()) {
+        show();
+    } else {
+        hide();
+    }
+}
+
 // TODO: Do we want to move the label drawing stuff up into GIBase?  No. It uses Gui/QGCustomXXX, so better here. -WF
 void QGIView::drawBorder()
 {
@@ -185,6 +196,8 @@ void QGIView::drawBorder()
     m_border->show();
 }
 
+
+//! calculate rectangle border must contain
 QRectF QGIView::customChildrenBoundingRect() {
     QList<QGraphicsItem*> children = childItems();
     int dimItemType = QGraphicsItem::UserType + 106;  // TODO: Magic number warning. make include file for custom types?
