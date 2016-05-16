@@ -42,8 +42,6 @@ TemplateTextField::TemplateTextField(QGraphicsItem *parent,
 
 void TemplateTextField::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    //TODO: Add a command to change template text, and call it from here
-    // ...Interpreter....("App.ActiveDocument().%s.%s.setTextField(%s,%s)",pageName,templateName,fieldName,fieldValue)
     DlgTemplateField* ui = new DlgTemplateField(nullptr);
     ui->setFieldName(fieldNameStr);
     ui->setFieldContent(tmplte->EditableTexts[fieldNameStr]);
@@ -51,7 +49,7 @@ void TemplateTextField::mousePressEvent(QGraphicsSceneMouseEvent *event)
     std::string newContent = "";
     if(uiCode == QDialog::Accepted) {
        std::string newContent = ui->getFieldContent();
-         tmplte->EditableTexts.setValue(fieldNameStr, newContent);
+       tmplte->EditableTexts.setValue(fieldNameStr, newContent);
     }
     ui->deleteLater();
 }
