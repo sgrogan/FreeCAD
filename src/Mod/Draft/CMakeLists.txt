@@ -24,8 +24,19 @@ SET(Draft_SRCS
 )
 SOURCE_GROUP("" FILES ${Draft_SRCS})
 
+SOURCE_GROUP("" FILES ${Draft_SRCS})
+
+SET (pattern_Files
+    Resources/patterns/concrete.svg
+	Resources/patterns/cross.svg
+	Resources/patterns/line.svg
+	Resources/patterns/simple.svg
+	Resources/patterns/square.svg
+)
+SOURCE_GROUP("pattern" FILES ${pattern_Files})
+
 ADD_CUSTOM_TARGET(Draft ALL
-    SOURCES ${Draft_SRCS} ${Draft_QRC_SRCS}
+    SOURCES ${Draft_SRCS} ${Draft_QRC_SRCS} ${pattern_Files}
 )
 
 fc_copy_sources(Draft "${CMAKE_BINARY_DIR}/Mod/Draft" ${Draft_SRCS})
@@ -49,6 +60,7 @@ SET(DraftGuiIcon_SVG
     Resources/icons/DraftWorkbench.svg
 )
 
-fc_copy_sources(Draft "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Draft" ${DraftGuiIcon_SVG})
+fc_copy_sources(Draft "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Draft" ${DraftGuiIcon_SVG} ${pattern_Files})
 
 INSTALL(FILES ${DraftGuiIcon_SVG} DESTINATION "${CMAKE_INSTALL_DATADIR}/Mod/Draft/Resources/icons")
+INSTALL(FILES ${pattern_Files} DESTINATION "${CMAKE_INSTALL_DATADIR}/Mod/Draft/Resources/patterns")
