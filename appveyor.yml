@@ -1,0 +1,104 @@
+#version:
+
+environment:
+  matrix:
+    - generator: "Visual Studio 12 Win64"
+      ARCH: "Win64"
+      Compiler: "MSVC2013"
+
+cache:
+  - C:\projects\clcache
+
+configuration:
+  #- Debug
+  - Release
+
+#branches:
+#  only:
+
+shallow_clone: true
+
+# scripts that are called at very beginning, before repo cloning
+#init:
+
+#before_build:
+
+# scripts that run after cloning repository
+install:
+  - cd C:\projects\freecad
+  - ps: Start-FileDownload https://github.com/FreeCAD/FreeCAD/releases/download/0.16/FreeCADLibs_11.3_x64_VC12.7z
+  - 7z x FreeCADLibs_11.3_x64_VC12.7z > nul
+  - ps: Start-FileDownload https://github.com/frerich/clcache/archive/v3.1.1.zip
+  - 7z x v3.1.1.zip > nul
+  - python --version
+  - set PATH=C:\\Python33;%PATH%
+  - set PATH=C:\\Python33\\Scripts;%PATH%
+  - python --version
+  - cd clcache-3.1.1
+  - dir
+  - pip install py2exe
+  - python setup.py py2exe
+  - dir
+  - cd dist
+  - dir
+  - ren clcache.exe cl.exe
+  - dir
+  #- set PATH=C:\\projects\\freecad\\clcache-3.1.1\\dist;%PATH%
+  #- cl.exe --help
+  #- cl.exe -s
+  - cd C:\projects
+  - dir
+  - set CLCACHE_DIR=C:\projects\clcache
+  - set CLCACHE_HARDLINK=1
+  - set CLCACHE_NODIRECT=1
+  - set PATH=C:\\Python27;%PATH%
+  - set PATH=C:\\Python27\\Scripts;%PATH%
+  - python --version
+  #- cl.exe --help
+  #- cl.exe -s
+  #- cd C:\projects
+  #- dir
+  #
+  #- cd "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64"
+  #- dir
+  #- ren cl.exe cl_original.exe
+  #- ren cl.exe.config cl_original.exe.config
+  #- dir
+  #- xcopy C:\projects\freecad\clcache-3.1.1\dist\cl.exe "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64"
+  #- dir
+  - set CLCACHE_CL="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe"
+  #- cd "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64"
+  #- cl.exe -s
+  #- cmake --version
+  #- ps: Start-FileDownload https://cmake.org/files/v3.5/cmake-3.5.1-win32-x86.zip
+  #- 7z x cmake-3.5.1-win32-x86.zip > nul
+  #- set PATH=C:\projects\freecad\cmake-3.5.1-win32-x86\bin;%PATH%
+  #- cmake --version
+
+build_script:
+  - cd C:\projects\freecad
+  - mkdir build
+  - cd build
+  #- set CC=C:\projects\freecad\clcache-3.1.1\dist\cl.exe
+  #- set CXX=C:\projects\freecad\clcache-3.1.1\dist\cl.exe
+  - cmake -DFREECAD_LIBPACK_DIR=C:\projects\freecad\FreeCADLibs_11.3_x64_VC12
+    -CMAKE_C_COMPILER=C:\projects\freecad\clcache-3.1.1\dist\cl.exe
+    -CMAKE_CXX_COMPILER=C:\projects\freecad\clcache-3.1.1\dist\cl.exe
+    -G "%generator%" ..
+  - mkdir bin
+  - xcopy C:\projects\freecad\FreeCADLibs_11.3_x64_VC12\bin C:\projects\freecad\build\bin /E /Q
+  - msbuild /m FreeCAD_Trunk.sln
+  - cd C:\projects\freecad\clcache-3.1.1\dist
+  - cl.exe -s
+
+#after_build:
+
+#artifacts:
+
+test: off  # to avoid discovering tests
+
+#
+# The following section automatically uploads artifacts
+# whenever a tag is created on the master branch.
+#
+#deploy:
