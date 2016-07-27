@@ -26,6 +26,7 @@ shallow_clone: true
 #before_build:
 
 # scripts that run after cloning repository
+#todo cleanup libpacks on the FreeCAD-ports-cache repo
 install:
   - cd C:\projects\freecad
   - if [%ARCH%] == [Win64] (
