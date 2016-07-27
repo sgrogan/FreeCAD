@@ -29,11 +29,11 @@ shallow_clone: true
 install:
   - cd C:\projects\freecad
   - if [%ARCH%] == [Win64] (
-      powershell -Command "Start-FileDownload https://github.com/sgrogan/FreeCAD/releases/download/0.17-med-test/FreeCADLibs_11.5.1_x64_VC12.7z" &&
+      powershell -Command "Start-FileDownload https://github.com/FreeCAD/FreeCAD-ports-cache/releases/download/v0.17/FreeCADLibs_11.5.1_x64_VC12.7z" &&
       7z x FreeCADLibs_11.5.1_x64_VC12.7z > nul &&
       ren FreeCADLibs_11.5_x64_VC12 FreeCADLibs)
   - if [%ARCH%] == [Win32] (
-      powershell -Command "Start-FileDownload https://github.com/sgrogan/FreeCAD/releases/download/0.17-med-test/FreeCADLibs_11.5.1_x86_VC12.7z" &&
+      powershell -Command "Start-FileDownload https://github.com/FreeCAD/FreeCAD-ports-cache/releases/download/v0.17/FreeCADLibs_11.5.1_x86_VC12.7z" &&
       7z x FreeCADLibs_11.5.1_x86_VC12.7z > nul &&
       ren FreeCADLibs_11.5_x86_VC12 FreeCADLibs)
   - dir
