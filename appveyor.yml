@@ -18,7 +18,7 @@ configuration:
 #branches:
 #  only:
 
-shallow_clone: true
+clone_depth: 1600
 
 # scripts that are called at very beginning, before repo cloning
 #init:
