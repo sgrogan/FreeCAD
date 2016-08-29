@@ -25,3 +25,12 @@ INSTALL(
         PATTERN "*.svg*"
         PATTERN "*.dxf*"
 )
+
+INSTALL(
+    DIRECTORY
+	    patterns
+	DESTINATION
+	    ${CMAKE_INSTALL_DATADIR}/Mod/Drawing
+	FILES_MATCHING 
+        PATTERN "*.svg*"
+)
