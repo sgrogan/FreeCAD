@@ -79,6 +79,40 @@ SET(Drawing_Templates
     Templates/A4_Landscape_plain.svg
     Templates/A4_Portrait_ISO7200.svg
     Templates/A4_Portrait_plain.svg
+    Templates/A0_Landscape_ISO7200.dxf
+    Templates/A0_Landscape_plain.dxf
+    Templates/A0_Portrait_plain.dxf
+    Templates/A1_Landscape_ISO7200.dxf
+    Templates/A1_Landscape_plain.dxf
+    Templates/A1_Portrait_plain.dxf
+    Templates/A2_Landscape_ISO7200.dxf
+    Templates/A2_Landscape_plain.dxf
+    Templates/A2_Portrait_plain.dxf
+    Templates/A3_Landscape.dxf
+    Templates/A3_Landscape_ISO7200.dxf
+    Templates/A3_Landscape_plain.dxf
+    Templates/A3_Portrait_plain.dxf
+    Templates/A4_Landscape.dxf
+    Templates/A4_Landscape_ISO7200.dxf
+    Templates/A4_Landscape_plain.dxf
+    Templates/A4_Portrait_ISO7200.dxf
+    Templates/A4_Portrait_plain.dxf	
+)
+
+SET(Drawing_patterns
+    brick01.svg
+	concrete.svg
+    cross.svg
+    diagonal1.svg
+    diagonal2.svg
+    earth.svg
+    hbone.svg
+    line.svg
+    plus.svg
+    simple.svg
+    solid.svg
+    square.svg
+    steel.svg
 )
 
 if(MSVC)
@@ -104,6 +138,11 @@ fc_target_copy_resource(Drawing
     ${CMAKE_SOURCE_DIR}/src/Mod/Drawing
     ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Drawing
     ${Drawing_Templates})
+	
+fc_target_copy_resource(Drawing 
+    ${CMAKE_SOURCE_DIR}/src/Mod/Drawing
+    ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Drawing
+    ${Drawing_patterns})
 
 SET_BIN_DIR(Drawing Drawing /Mod/Drawing)
 SET_PYTHON_PREFIX_SUFFIX(Drawing)
