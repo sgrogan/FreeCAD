@@ -100,7 +100,7 @@ SET(Drawing_Templates
 
 SET(Drawing_patterns
     patterns/brick01.svg
-	patterns/concrete.svg
+    patterns/concrete.svg
     patterns/cross.svg
     patterns/diagonal1.svg
     patterns/diagonal2.svg
@@ -140,8 +140,8 @@ fc_target_copy_resource(Drawing
 	
 fc_target_copy_resource(Drawing
     ${CMAKE_SOURCE_DIR}/src/Mod/Drawing
-	${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Drawing
-	${Drawing_patterns})
+    ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/Drawing
+    ${Drawing_patterns})
 
 SET_BIN_DIR(Drawing Drawing /Mod/Drawing)
 SET_PYTHON_PREFIX_SUFFIX(Drawing)
