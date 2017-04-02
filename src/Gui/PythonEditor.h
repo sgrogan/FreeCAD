@@ -67,6 +67,8 @@ protected:
     /** Pops up the context menu with some extensions */
     void contextMenuEvent ( QContextMenuEvent* e );
     void drawMarker(int line, int x, int y, QPainter*);
+    void keyPressEvent(QKeyEvent * e);
+    QTextCursor inputBegin( void ) const;
 
 private:
     //PythonSyntaxHighlighter* pythonSyntax;

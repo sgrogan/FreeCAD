@@ -37,10 +37,12 @@
 #include "Macro.h"
 #include "FileDialog.h"
 #include "DlgEditorImp.h"
+#include "CallTips.h"
 
 #include <Base/Interpreter.h>
 #include <Base/Exception.h>
 #include <Base/Parameter.h>
+#include <QRegExp>
 
 using namespace Gui;
 
@@ -53,10 +55,12 @@ struct PythonEditorP
     QPixmap debugMarker;
     QString filename;
     PythonDebugger* debugger;
+    CallTipsList* callTipsList;
     PythonEditorP()
         : debugLine(-1),
           breakpoint(BitmapFactory().iconFromTheme("breakpoint").pixmap(16,16)),
-          debugMarker(BitmapFactory().iconFromTheme("debug-marker").pixmap(16,16))
+          debugMarker(BitmapFactory().iconFromTheme("debug-marker").pixmap(16,16)),
+          callTipsList(0)
     {
         debugger = Application::Instance->macroManager()->debugger();
     }
@@ -86,6 +90,15 @@ PythonEditor::PythonEditor(QWidget* parent)
             this, SLOT(onComment()));
     connect(uncomment, SIGNAL(activated()), 
             this, SLOT(onUncomment()));
+
+    // create the window for call tips
+    d->callTipsList = new CallTipsList(this);
+    d->callTipsList->setFrameStyle(QFrame::Box|QFrame::Raised);
+    d->callTipsList->setLineWidth(2);
+    installEventFilter(d->callTipsList);
+    viewport()->installEventFilter(d->callTipsList);
+    d->callTipsList->setSelectionMode( QAbstractItemView::SingleSelection );
+    d->callTipsList->hide();
 }
 
 /** Destroys the object and frees any allocated resources */
@@ -163,6 +176,87 @@ void PythonEditor::contextMenuEvent ( QContextMenuEvent * e )
 
     menu->exec(e->globalPos());
     delete menu;
+}
+
+/**
+ * Checks the input to make the correct indentations.
+ * And code completions
+ */
+void PythonEditor::keyPressEvent(QKeyEvent * e)
+{
+    QTextCursor cursor = this->textCursor();
+    QTextCursor inputLineBegin = this->inputBegin();
+
+    /**
+    * The cursor sits somewhere on the input line (after the prompt)
+    *   - restrict cursor movement to input line range (excluding the prompt characters)
+    *   - roam the history by Up/Down keys
+    *   - show call tips on period
+    */
+    QTextBlock inputBlock = inputLineBegin.block();              //< get the last paragraph's text
+    QString    inputLine  = inputBlock.text();
+
+    switch (e->key())
+    {
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+    {
+        // auto indent
+        ParameterGrp::handle hPrefGrp = getWindowParameter();
+        int indent = hPrefGrp->GetInt( "IndentSize", 4 );
+        bool space = hPrefGrp->GetBool( "Spaces", false );
+        QString ch = space ? QString(indent, QLatin1Char(' '))
+                           : QString::fromLatin1("\t");
+
+        // get leading indent
+        static QRegExp rx(QString::fromLatin1("^(\\s*)"));
+        int pos = rx.indexIn(inputLine);
+        QString ind = pos > -1 ? rx.cap(1) : QString();
+
+        if (inputLine.trimmed().endsWith(QLatin1Char(':'))) {
+            // a class or function
+            ind += ch;
+        }
+        TextEdit::keyPressEvent(e);
+        insertPlainText(ind);
+    }   break;
+
+    case Qt::Key_Period:
+    {
+        // In Qt 4.8 there is a strange behaviour because when pressing ":"
+        // then key is also set to 'Period' instead of 'Colon'. So we have
+        // to make sure we only handle the period.
+        if (e->text() == QLatin1String(".") && cursor != inputLineBegin) {
+            // analyse context and show available call tips
+            int contextLength = cursor.position() - inputLineBegin.position();
+            TextEdit::keyPressEvent(e);
+            d->callTipsList->showTips( inputLine.left( contextLength ) );
+        }
+        else {
+            TextEdit::keyPressEvent(e);
+        }
+    }   break;
+
+    default:
+    {
+        TextEdit::keyPressEvent(e);
+    }   break;
+    }
+    // This can't be done in CallTipsList::eventFilter() because we must first perform
+    // the event and afterwards update the list widget
+    if (d->callTipsList->isVisible())
+    { d->callTipsList->validateCursor(); }
+}
+
+QTextCursor PythonEditor::inputBegin( void ) const
+{
+  // construct cursor at begin of input line ...
+  QTextCursor inputLineBegin( this->textCursor() );
+  inputLineBegin.movePosition( QTextCursor::EndOfLine );
+  inputLineBegin.movePosition( QTextCursor::StartOfLine );
+  // ... and move cursor right beyond the prompt.
+  //inputLineBegin.movePosition( QTextCursor::Right, QTextCursor::MoveAnchor, promptLength( inputLineBegin.block().text() ) );
+  return inputLineBegin;
 }
 
 void PythonEditor::onComment()
