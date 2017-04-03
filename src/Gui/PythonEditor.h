@@ -48,6 +48,9 @@ public:
     void toggleBreakpoint();
     void showDebugMarker(int line);
     void hideDebugMarker();
+    // python modules for code completion
+    void importModule(const QString name);
+    void importModuleFrom(const QString from, const QString name);
 
 public Q_SLOTS:
     /** Inserts a '#' at the beginning of each selected line or the current line if 
@@ -86,6 +89,8 @@ public:
     virtual ~PythonSyntaxHighlighter();
 
     void highlightBlock (const QString & text);
+    // for code completion
+    void setPythonEditor(Gui::PythonEditor *editor);
 
 private:
     PythonSyntaxHighlighterP* d;

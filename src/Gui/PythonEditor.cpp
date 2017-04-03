@@ -39,10 +39,14 @@
 #include "DlgEditorImp.h"
 #include "CallTips.h"
 
+
+#include <CXX/Objects.hxx>
+#include <Base/PyObjectBase.h>
 #include <Base/Interpreter.h>
 #include <Base/Exception.h>
 #include <Base/Parameter.h>
 #include <QRegExp>
+#include <QDebug>
 
 using namespace Gui;
 
@@ -77,7 +81,10 @@ PythonEditor::PythonEditor(QWidget* parent)
   : TextEditor(parent)
 {
     d = new PythonEditorP();
-    this->setSyntaxHighlighter(new PythonSyntaxHighlighter(this));
+    PythonSyntaxHighlighter *hl = new PythonSyntaxHighlighter(this);
+    this->setSyntaxHighlighter(hl);
+    hl->setPythonEditor(this);
+
 
     // set acelerators
     QShortcut* comment = new QShortcut(this);
@@ -92,7 +99,7 @@ PythonEditor::PythonEditor(QWidget* parent)
             this, SLOT(onUncomment()));
 
     // create the window for call tips
-    d->callTipsList = new CallTipsList(this);
+    d->callTipsList = new CallTipsList(this); //, QLatin1String("__scriptcompletion__"));
     d->callTipsList->setFrameStyle(QFrame::Box|QFrame::Raised);
     d->callTipsList->setLineWidth(2);
     installEventFilter(d->callTipsList);
@@ -119,6 +126,22 @@ void PythonEditor::startDebug()
         d->debugger->runFile(d->filename);
         d->debugger->stop();
     }
+}
+
+void PythonEditor::importModule(const QString name)
+{
+    qDebug() << "import module:" << qPrintable(name) << endl;
+    Base::PyGILStateLocker lock;
+    PyObject* obj = PyImport_ImportModule(name.toLatin1());
+
+}
+
+void PythonEditor::importModuleFrom(const QString from, const QString name)
+{
+
+    qDebug() << "from " << qPrintable(from) << " " << qPrintable(name) << endl;
+    Base::PyGILStateLocker lock;
+    PyObject* obj = PyImport_ImportModule(QString(from + QLatin1String(".") + name).toLatin1());
 }
 
 void PythonEditor::toggleBreakpoint()
@@ -313,7 +336,8 @@ namespace Gui {
 class PythonSyntaxHighlighterP
 {
 public:
-    PythonSyntaxHighlighterP()
+    PythonSyntaxHighlighterP():
+        editor(0)
     {
         keywords << QLatin1String("and") << QLatin1String("as")
                  << QLatin1String("assert") << QLatin1String("break")
@@ -334,6 +358,24 @@ public:
     }
 
     QStringList keywords;
+    QString importName;
+    QString importFrom;
+    PythonEditor *editor;
+
+
+    void emitName()
+    {
+        if (!editor)
+            return;
+        if (importFrom.isEmpty())
+            editor->importModule(importName);
+        else if (importName.isEmpty())
+            importFrom.clear();
+        else
+            editor->importModuleFrom(importFrom, importName);
+        importName.clear();
+    }
+
 };
 } // namespace Gui
 
@@ -359,6 +401,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
 {
   int i = 0;
   QChar prev, ch;
+  int endPos = text.length() - 1;
 
   const int Standard      = 0;     // Standard text
   const int Digit         = 1;     // Digits
@@ -369,6 +412,8 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
   const int Blockcomment2 = 6;     // Other block comments beginning and ending with '''
   const int ClassName     = 7;     // Text after the keyword class
   const int DefineName    = 8;     // Text after the keyword def
+  const int ImportName    = 9;     // Text after import statement
+  const int FromName      = 10;    // Text after from statement
 
   int endStateOfLastPara = previousBlockState();
   if (endStateOfLastPara < 0 || endStateOfLastPara > maximumUserState()) 
@@ -453,6 +498,10 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
                   endStateOfLastPara = DefineName;
                 else if ( buffer == QLatin1String("class"))
                   endStateOfLastPara = ClassName;
+                else if ( buffer == QLatin1String("import"))
+                  endStateOfLastPara = ImportName;
+                else if ( buffer == QLatin1String("from"))
+                  endStateOfLastPara = FromName;
 
                 QTextCharFormat keywordFormat;
                 keywordFormat.setForeground(this->colorByType(SyntaxHighlighter::Keyword));
@@ -551,7 +600,52 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
             setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
           endStateOfLastPara = Standard;
         }
-      }break;
+      } break;
+      case ImportName:
+      {
+        if ( ch.isLetterOrNumber() ||
+             ch == QLatin1Char('_') || ch == QLatin1Char('*')  )
+        {
+          setFormat( i, 1, this->colorByType(SyntaxHighlighter::Text));
+          d->importName += ch;
+        }
+        else
+        {
+          if (ch.isSymbol() || ch.isPunct())
+          {
+            setFormat(i, 1, this->colorByType(SyntaxHighlighter::Operator));
+            if (ch == QLatin1Char('.'))
+                d->importName += ch;
+          }
+          else if (prev != QLatin1Char(' '))
+          {
+              if (ch == QLatin1Char(' '))
+              {
+                d->emitName();
+              }
+              else if (!d->importFrom.isEmpty()) {
+                  d->importFrom.clear();
+              }
+          }
+        }
+        if (i == endPos) { // last char in row
+            d->emitName();
+            d->importFrom.clear();
+        }
+      } break;
+      case FromName:
+      {
+        if (prev.isLetterOrNumber() && ch == QLatin1Char(' '))
+        {
+            // start import statement
+            endStateOfLastPara = Standard; //ImportName;
+        }
+        else if ( ch.isLetterOrNumber() || ch == QLatin1Char('_') )
+        {
+          setFormat( i, 1, this->colorByType(SyntaxHighlighter::Classname));
+          d->importFrom += ch;
+        }
+      } break;
     }
 
     prev = ch;
@@ -565,6 +659,11 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
   } 
 
   setCurrentBlockState(endStateOfLastPara);
+}
+
+void PythonSyntaxHighlighter::setPythonEditor(PythonEditor *editor)
+{
+    d->editor = editor;
 }
 
 #include "moc_PythonEditor.cpp"
