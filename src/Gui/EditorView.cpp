@@ -449,10 +449,46 @@ bool EditorView::saveFile()
     QFile file(d->fileName);
     if (!file.open(QFile::WriteOnly))
         return false;
+
+
+    // trim trailing whitespace?
+    ParameterGrp::handle hPrefGrp = getWindowParameter();
+    if (hPrefGrp->GetBool("EnableTrimTrailingWhitespaces", true )) {
+            // to restore cursor and scroll position
+            QTextCursor cursor = d->textEdit->textCursor();
+            int oldPos = cursor.position(),
+                vScroll = d->textEdit->verticalScrollBar()->value(),
+                hScroll = d->textEdit->horizontalScrollBar()->value();
+
+            QStringList rows = d->textEdit->document()->toPlainText()
+                                    .split(QLatin1Char('\n'));
+            int delCount = 0, chPos = -1;
+            for (QString &row : rows) {
+                ++chPos; // for the newline
+                int i =  row.size();
+                while(i > 0 && row[i - 1].isSpace())
+                    --i;
+                if (chPos + row.size() - i <= oldPos) // for restore cursorposition
+                    delCount += row.size() - i;
+                chPos += row.size();
+                row.remove(i, row.size() - i);
+            }
+
+            QString txt = rows.join(QLatin1String("\n"));
+            d->textEdit->document()->setPlainText(txt);
+
+            // restore cursor and scroll position
+            d->textEdit->verticalScrollBar()->setValue(vScroll);
+            d->textEdit->horizontalScrollBar()->setValue(hScroll);
+            cursor.setPosition(oldPos - delCount);
+            d->textEdit->setTextCursor(cursor);
+    }
+
     QTextStream ts(&file);
     ts.setCodec(QTextCodec::codecForName("UTF-8"));
     ts << d->textEdit->document()->toPlainText();
     file.close();
+
     d->textEdit->document()->setModified(false);
 
     QFileInfo fi(d->fileName);
