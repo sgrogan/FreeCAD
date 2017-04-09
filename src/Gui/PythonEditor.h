@@ -63,6 +63,12 @@ public Q_SLOTS:
      * this line is skipped.
      */
     void onUncomment();
+    /**
+     * @brief onIndent
+     * Indents selected codeblock
+     */
+    void onAutoIndent();
+
     void setFileName(const QString&);
     void startDebug();
 
