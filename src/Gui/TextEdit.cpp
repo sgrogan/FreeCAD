@@ -342,8 +342,23 @@ void TextEditor::keyPressEvent (QKeyEvent * e)
         if (!cursor.hasSelection()) {
             // insert a single tab or several spaces
             cursor.beginEditBlock();
+            // move cursor to start of text and adjust indentation
+            int oldPos = cursor.position();
+            int startPos = cursor.block().position();
+            QString line = cursor.block().text();
+            QRegExp re(QLatin1String("^(\\s*)"));
+            if (re.indexIn(line) > -1 && space && indent > 0 &&
+                    re.cap(1).size() + startPos >= oldPos)
+            {
+                // cursor are in indent whitespace
+                int diff = re.cap(1).size() % indent;
+                ch.remove(ch.size() - diff, diff); // resize indetation to match even indentation size
+                cursor.setPosition(startPos + re.cap(1).size()); // to end of current indentation
+            }
+
             cursor.insertText(ch);
             cursor.endEditBlock();
+            setTextCursor(cursor);
         } else {
             // for each selected block insert a tab or spaces
             int selStart = cursor.selectionStart();
