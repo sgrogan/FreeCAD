@@ -131,8 +131,8 @@ void PythonEditor::startDebug()
 void PythonEditor::importModule(const QString name)
 {
     qDebug() << "import module:" << qPrintable(name) << endl;
-    Base::PyGILStateLocker lock;
-    PyObject* obj = PyImport_ImportModule(name.toLatin1());
+   // Base::PyGILStateLocker lock;
+   // PyObject* obj = PyImport_ImportModule(name.toLatin1());
 
 }
 
@@ -140,8 +140,8 @@ void PythonEditor::importModuleFrom(const QString from, const QString name)
 {
 
     qDebug() << "from " << qPrintable(from) << " " << qPrintable(name) << endl;
-    Base::PyGILStateLocker lock;
-    PyObject* obj = PyImport_ImportModule(QString(from + QLatin1String(".") + name).toLatin1());
+    // Base::PyGILStateLocker lock;
+    //PyObject* obj = PyImport_ImportModule(QString(from + QLatin1String(".") + name).toLatin1());
 }
 
 void PythonEditor::toggleBreakpoint()
@@ -195,6 +195,7 @@ void PythonEditor::contextMenuEvent ( QContextMenuEvent * e )
         menu->addSeparator();
         menu->addAction( tr("Comment"), this, SLOT( onComment() ), Qt::ALT + Qt::Key_C );
         menu->addAction( tr("Uncomment"), this, SLOT( onUncomment() ), Qt::ALT + Qt::Key_U );
+        menu->addAction( tr("Auto indent"), this, SLOT( onAutoIndent() ), Qt::CTRL + Qt::SHIFT + Qt::Key_I );
     }
 
     menu->exec(e->globalPos());
@@ -209,6 +210,7 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
 {
     QTextCursor cursor = this->textCursor();
     QTextCursor inputLineBegin = this->inputBegin();
+    static bool autoIndented = false;
 
     /**
     * The cursor sits somewhere on the input line (after the prompt)
@@ -221,50 +223,103 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
 
     switch (e->key())
     {
+    case Qt::Key_Backspace:
+    {
+        if (autoIndented) {
+            cursor.beginEditBlock();
+            int oldPos = cursor.position(),
+                blockPos = cursor.block().position();
+            // find previous block indentation
+            QRegExp re(QLatin1String("[:{]\\s*$"));
+            int pos = 0, ind = 0;
+            while (cursor.movePosition(QTextCursor::Up,
+                                       QTextCursor::KeepAnchor, 1))
+            {
+                if (re.indexIn(cursor.block().text()) > -1) {
+                    // get leading indent of this row
+                    QRegExp rx(QString::fromLatin1("^(\\s*)"));
+                    pos = rx.indexIn(cursor.block().text());
+                    ind = pos > -1 ? rx.cap(1).size() : -1;
+                    if (blockPos + ind < oldPos)
+                        break;
+                }
+                pos = 0;
+                ind = 0;
+            }
+
+            if (ind > -1) {
+                // reposition to start chr where we want to erase
+                cursor.setPosition(blockPos + ind, QTextCursor::KeepAnchor);
+                cursor.removeSelectedText();
+            }
+            if (ind <= 0) {
+                autoIndented = false;
+            }
+
+            cursor.endEditBlock();
+        } else {
+            TextEditor::keyPressEvent(e);
+        }
+
+    } break;
     case Qt::Key_Return:
     case Qt::Key_Enter:
     {
         // auto indent
         ParameterGrp::handle hPrefGrp = getWindowParameter();
-        int indent = hPrefGrp->GetInt( "IndentSize", 4 );
-        bool space = hPrefGrp->GetBool( "Spaces", false );
-        QString ch = space ? QString(indent, QLatin1Char(' '))
-                           : QString::fromLatin1("\t");
+        if (hPrefGrp->GetBool( "EnableAutoIndent", true)) {
+            cursor.beginEditBlock();
+            int indent = hPrefGrp->GetInt( "IndentSize", 4 );
+            bool space = hPrefGrp->GetBool( "Spaces", false );
+            QString ch = space ? QString(indent, QLatin1Char(' '))
+                               : QString::fromLatin1("\t");
 
-        // get leading indent
-        static QRegExp rx(QString::fromLatin1("^(\\s*)"));
-        int pos = rx.indexIn(inputLine);
-        QString ind = pos > -1 ? rx.cap(1) : QString();
+            // get leading indent
+            QRegExp rx(QString::fromLatin1("^(\\s*)"));
+            int pos = rx.indexIn(inputLine);
+            QString ind = pos > -1 ? rx.cap(1) : QString();
 
-        if (inputLine.trimmed().endsWith(QLatin1Char(':'))) {
-            // a class or function
-            ind += ch;
+            QRegExp re(QLatin1String("[:{]"));
+            if (cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor) &&
+                re.indexIn(cursor.selectedText()) > -1)
+            {
+                // a class or function
+                ind += ch;
+            }
+            TextEditor::keyPressEvent(e);
+            insertPlainText(ind);
+            cursor.endEditBlock();
+            autoIndented = true;
+        } else {
+            TextEditor::keyPressEvent(e);
         }
-        TextEdit::keyPressEvent(e);
-        insertPlainText(ind);
     }   break;
 
     case Qt::Key_Period:
     {
+        autoIndented = false;
+
         // In Qt 4.8 there is a strange behaviour because when pressing ":"
         // then key is also set to 'Period' instead of 'Colon'. So we have
         // to make sure we only handle the period.
         if (e->text() == QLatin1String(".") && cursor != inputLineBegin) {
             // analyse context and show available call tips
             int contextLength = cursor.position() - inputLineBegin.position();
-            TextEdit::keyPressEvent(e);
+            TextEditor::keyPressEvent(e);
             d->callTipsList->showTips( inputLine.left( contextLength ) );
         }
         else {
-            TextEdit::keyPressEvent(e);
+            TextEditor::keyPressEvent(e);
         }
     }   break;
 
     default:
     {
-        TextEdit::keyPressEvent(e);
+        autoIndented = false;
+        TextEditor::keyPressEvent(e);
     }   break;
     }
+
     // This can't be done in CallTipsList::eventFilter() because we must first perform
     // the event and afterwards update the list widget
     if (d->callTipsList->isVisible())
@@ -327,6 +382,105 @@ void PythonEditor::onUncomment()
         }
     }
 
+    cursor.endEditBlock();
+}
+
+void PythonEditor::onAutoIndent()
+{
+    QTextCursor cursor = textCursor();
+    int selStart = cursor.selectionStart();
+    int selEnd = cursor.selectionEnd();
+    QList<int> indentLevel;// level of indentation at different indentaions
+
+    QTextBlock block;
+    QRegExp reNewBlock(QLatin1String("[:{]\\s*#*.*$"));
+    QChar mCommentChr(0);
+    int mCommentIndents = 0;
+
+    ParameterGrp::handle hPrefGrp = getWindowParameter();
+    int indentSize = hPrefGrp->GetInt( "IndentSize", 4 );
+    bool useSpaces = hPrefGrp->GetBool( "Spaces", false );
+    QString space = useSpaces ? QString(indentSize, QLatin1Char(' '))
+                       : QString::fromLatin1("\t");
+
+    cursor.beginEditBlock();
+    for (block = document()->begin(); block.isValid(); block = block.next()) {
+        // get this rows indent
+        int chrCount = 0, blockIndent = 0;
+        bool textRow = false, mayIndent = false;
+        for (int i = 0; i < block.text().size(); ++i) {
+            QChar ch = block.text()[i];
+            if (ch == QLatin1Char(' ')) {
+                ++chrCount;
+            } else if (ch == QLatin1Char('\t')) {
+                chrCount += indentSize;
+            } else if (ch == QLatin1Char('#')) {
+                textRow = true;
+                break; // comment row
+            } else if (ch == QLatin1Char('\'') || ch == QLatin1Char('"')) {
+                if (block.text().size() > i + 2 &&
+                    block.text()[i +1] == ch && block.text()[i +2] == ch)
+                {
+                    if (mCommentChr == 0) {
+                        mCommentChr = ch;// start a multiline comment
+                    } else if (mCommentChr == ch) {
+                        mCommentChr = 0;// end multiline comment
+                        while (mCommentIndents > 0 && indentLevel.size()) {
+                            indentLevel.removeLast();
+                            --mCommentIndents;
+                        }
+                    }
+                    textRow = true;
+                    break;
+                }
+            } /*else if (mCommentChr != QChar(0)) {
+                textRow = true;
+                break; // inside multiline comment
+            }*/ else if (ch.isLetterOrNumber()) {
+                mayIndent = true;
+                textRow = true;
+                break; // text started
+            }
+        }
+        if (!textRow) continue;
+
+        // cancel a indent block
+        while (indentLevel.size() > 0 && chrCount <= indentLevel.last()){
+            // stop current indent block
+            indentLevel.removeLast();
+            if (mCommentChr != 0)
+                --mCommentIndents;
+        }
+
+        // start a new indent block?
+        QString txt = block.text();
+        if (mayIndent && reNewBlock.indexIn(txt) > -1) {
+            indentLevel.append(chrCount);
+            blockIndent = -1; // dont indent this row
+            if (mCommentChr != 0)
+                ++mCommentIndents;
+        }
+
+        int pos = block.position();
+        int off = block.length()-1;
+        // at least one char of the block is part of the selection
+        if ( pos >= selStart || pos+off >= selStart) {
+            if ( pos+1 > selEnd )
+                break; // end of selection reached
+            int i = 0;
+            for (QChar ch : block.text()) {
+                if (!ch.isSpace())
+                    break;
+                cursor.setPosition(block.position());
+                cursor.deleteChar();
+                ++i;
+            }
+            for (i = 0; i < indentLevel.size() + blockIndent; ++i) {
+                cursor.setPosition(block.position());
+                cursor.insertText(space);
+            }
+        }
+    }
     cursor.endEditBlock();
 }
 
