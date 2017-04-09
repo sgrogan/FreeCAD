@@ -95,11 +95,33 @@ public:
     virtual ~PythonSyntaxHighlighter();
 
     void highlightBlock (const QString & text);
-    // for code completion
-    void setPythonEditor(Gui::PythonEditor *editor);
+
+    enum States {
+        Standard         = 0,     // Standard text
+        Digit            = 1,     // Digits
+        Comment          = 2,     // Comment begins with #
+        Literal1         = 3,     // String literal beginning with "
+        Literal2         = 4,     // Other string literal beginning with '
+        Blockcomment1    = 5,     // Block comments beginning and ending with """
+        Blockcomment2    = 6,     // Other block comments beginning and ending with '''
+        ClassName        = 7,     // Text after the keyword class
+        DefineName       = 8,     // Text after the keyword def
+        ImportName       = 9,    // Text after import statement
+        FromName         = 10,    // Text after from statement before import statement
+    };
 
 private:
     PythonSyntaxHighlighterP* d;
+
+    inline void setComment(int pos, int len);
+    inline void setSingleQuotString(int pos, int len);
+    inline void setDoubleQuotString(int pos, int len);
+    inline void setSingleQuotBlockComment(int pos, int len);
+    inline void setDoubleQuotBlockComment(int pos, int len);
+    inline void setOperator(int pos, int len);
+    inline void setKeyword(int pos, int len);
+    inline void setText(int pos, int len);
+    inline void setNumber(int pos, int len);
 };
 
 } // namespace Gui

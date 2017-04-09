@@ -83,7 +83,6 @@ PythonEditor::PythonEditor(QWidget* parent)
     d = new PythonEditorP();
     PythonSyntaxHighlighter *hl = new PythonSyntaxHighlighter(this);
     this->setSyntaxHighlighter(hl);
-    hl->setPythonEditor(this);
 
 
     // set acelerators
@@ -93,9 +92,14 @@ PythonEditor::PythonEditor(QWidget* parent)
     QShortcut* uncomment = new QShortcut(this);
     uncomment->setKey(Qt::ALT + Qt::Key_U);
 
+    QShortcut* autoIndent = new QShortcut(this);
+    autoIndent->setKey(Qt::CTRL + Qt::SHIFT + Qt::Key_I );
+
     connect(comment, SIGNAL(activated()), 
             this, SLOT(onComment()));
     connect(uncomment, SIGNAL(activated()), 
+            this, SLOT(onUncomment()));
+    connect(autoIndent, SIGNAL(activated()),
             this, SLOT(onUncomment()));
 
     // create the window for call tips
@@ -126,22 +130,6 @@ void PythonEditor::startDebug()
         d->debugger->runFile(d->filename);
         d->debugger->stop();
     }
-}
-
-void PythonEditor::importModule(const QString name)
-{
-    qDebug() << "import module:" << qPrintable(name) << endl;
-   // Base::PyGILStateLocker lock;
-   // PyObject* obj = PyImport_ImportModule(name.toLatin1());
-
-}
-
-void PythonEditor::importModuleFrom(const QString from, const QString name)
-{
-
-    qDebug() << "from " << qPrintable(from) << " " << qPrintable(name) << endl;
-    // Base::PyGILStateLocker lock;
-    //PyObject* obj = PyImport_ImportModule(QString(from + QLatin1String(".") + name).toLatin1());
 }
 
 void PythonEditor::toggleBreakpoint()
@@ -491,7 +479,7 @@ class PythonSyntaxHighlighterP
 {
 public:
     PythonSyntaxHighlighterP():
-        editor(0)
+        endStateOfLastPara(PythonSyntaxHighlighter::Standard)
     {
         keywords << QLatin1String("and") << QLatin1String("as")
                  << QLatin1String("assert") << QLatin1String("break")
@@ -514,22 +502,7 @@ public:
     QStringList keywords;
     QString importName;
     QString importFrom;
-    PythonEditor *editor;
-
-
-    void emitName()
-    {
-        if (!editor)
-            return;
-        if (importFrom.isEmpty())
-            editor->importModule(importName);
-        else if (importName.isEmpty())
-            importFrom.clear();
-        else
-            editor->importModuleFrom(importFrom, importName);
-        importName.clear();
-    }
-
+    PythonSyntaxHighlighter::States endStateOfLastPara;
 };
 } // namespace Gui
 
@@ -557,51 +530,33 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
   QChar prev, ch;
   int endPos = text.length() - 1;
 
-  const int Standard      = 0;     // Standard text
-  const int Digit         = 1;     // Digits
-  const int Comment       = 2;     // Comment begins with #
-  const int Literal1      = 3;     // String literal beginning with "
-  const int Literal2      = 4;     // Other string literal beginning with '
-  const int Blockcomment1 = 5;     // Block comments beginning and ending with """
-  const int Blockcomment2 = 6;     // Other block comments beginning and ending with '''
-  const int ClassName     = 7;     // Text after the keyword class
-  const int DefineName    = 8;     // Text after the keyword def
-  const int ImportName    = 9;     // Text after import statement
-  const int FromName      = 10;    // Text after from statement
-
-  int endStateOfLastPara = previousBlockState();
-  if (endStateOfLastPara < 0 || endStateOfLastPara > maximumUserState()) 
-    endStateOfLastPara = Standard;
+  d->endStateOfLastPara = static_cast<PythonSyntaxHighlighter::States>(previousBlockState());
+  if (d->endStateOfLastPara < 0 || d->endStateOfLastPara > maximumUserState())
+    d->endStateOfLastPara = Standard;
 
   while ( i < text.length() )
   {
     ch = text.at( i );
 
-    switch ( endStateOfLastPara )
+    switch ( d->endStateOfLastPara )
     {
     case Standard:
       {
         switch ( ch.unicode() )
         {
         case '#':
-          {
             // begin a comment
-            setFormat( i, 1, this->colorByType(SyntaxHighlighter::Comment));
-            endStateOfLastPara=Comment;
-          } break;
+            setComment(i, 1);
+            break;
         case '"':
           {
             // Begin either string literal or block comment
             if ((i>=2) && text.at(i-1) == QLatin1Char('"') &&
                 text.at(i-2) == QLatin1Char('"'))
             {
-              setFormat( i-2, 3, this->colorByType(SyntaxHighlighter::BlockComment));
-              endStateOfLastPara=Blockcomment1;
-            }
-            else
-            {
-              setFormat( i, 1, this->colorByType(SyntaxHighlighter::String));
-              endStateOfLastPara=Literal1;
+              setDoubleQuotBlockComment(i-2, 3);
+            } else {
+              setDoubleQuotString(i, 1);
             }
           } break;
         case '\'':
@@ -610,13 +565,9 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
             if ((i>=2) && text.at(i-1) == QLatin1Char('\'') && 
                 text.at(i-2) == QLatin1Char('\''))
             {
-              setFormat( i-2, 3, this->colorByType(SyntaxHighlighter::BlockComment));
-              endStateOfLastPara=Blockcomment2;
-            }
-            else
-            {
-              setFormat( i, 1, this->colorByType(SyntaxHighlighter::String));
-              endStateOfLastPara=Literal2;
+              setSingleQuotBlockComment(i-2, 3);
+            } else {
+              setSingleQuotString(i, 1);
             }
           } break;
         case ' ':
@@ -624,14 +575,12 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
           {
             // ignore whitespaces
           } break;
-        case '(': case ')': case '[': case ']': 
+        case '(': case '[': case ')': case ']':
         case '+': case '-': case '*': case '/': 
         case ':': case '%': case '^': case '~': 
         case '!': case '=': case '<': case '>': // possibly two characters
-          {
-            setFormat(i, 1, this->colorByType(SyntaxHighlighter::Operator));
-            endStateOfLastPara=Standard;
-          } break;
+            setOperator(i, 1);
+            break;
         default:
           {
             // Check for normal text
@@ -648,22 +597,19 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
               }
 
               if ( d->keywords.contains( buffer ) != 0 ) {
-                if ( buffer == QLatin1String("def"))
-                  endStateOfLastPara = DefineName;
-                else if ( buffer == QLatin1String("class"))
-                  endStateOfLastPara = ClassName;
-                else if ( buffer == QLatin1String("import"))
-                  endStateOfLastPara = ImportName;
-                else if ( buffer == QLatin1String("from"))
-                  endStateOfLastPara = FromName;
+                setKeyword(i, buffer.length());
 
-                QTextCharFormat keywordFormat;
-                keywordFormat.setForeground(this->colorByType(SyntaxHighlighter::Keyword));
-                keywordFormat.setFontWeight(QFont::Bold);
-                setFormat( i, buffer.length(), keywordFormat);
+                if ( buffer == QLatin1String("def"))
+                  d->endStateOfLastPara = DefineName;
+                else if ( buffer == QLatin1String("class"))
+                  d->endStateOfLastPara = ClassName;
+                else if ( buffer == QLatin1String("import"))
+                  d->endStateOfLastPara = ImportName;
+                else if ( buffer == QLatin1String("from"))
+                  d->endStateOfLastPara = FromName;
               }
               else {
-                setFormat( i, buffer.length(),this->colorByType(SyntaxHighlighter::Text));
+                setText(i, 1);
               }
 
               // increment i
@@ -673,13 +619,12 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
             // this is the beginning of a number
             else if ( ch.isDigit() )
             {
-              setFormat(i, 1, this->colorByType(SyntaxHighlighter::Number));
-              endStateOfLastPara=Digit;
+              setNumber(i, 1);
             }
             // probably an operator
             else if ( ch.isSymbol() || ch.isPunct() )
             {
-              setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
+              setOperator(i, 1);
             }
           }
         }
@@ -692,13 +637,13 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
       {
         setFormat( i, 1, this->colorByType(SyntaxHighlighter::String));
         if ( ch == QLatin1Char('"') )
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
       } break;
     case Literal2:
       {
         setFormat( i, 1, this->colorByType(SyntaxHighlighter::String));
         if ( ch == QLatin1Char('\'') )
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
       } break;
     case Blockcomment1:
       {
@@ -706,7 +651,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         if ( i>=2 && ch == QLatin1Char('"') &&
             text.at(i-1) == QLatin1Char('"') &&
             text.at(i-2) == QLatin1Char('"'))
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
       } break;
     case Blockcomment2:
       {
@@ -714,7 +659,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         if ( i>=2 && ch == QLatin1Char('\'') &&
             text.at(i-1) == QLatin1Char('\'') &&
             text.at(i-2) == QLatin1Char('\''))
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
       } break;
     case DefineName:
       {
@@ -726,7 +671,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         {
           if ( ch.isSymbol() || ch.isPunct() )
             setFormat(i, 1, this->colorByType(SyntaxHighlighter::Operator));
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
         }
       } break;
     case ClassName:
@@ -739,7 +684,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         {
           if (ch.isSymbol() || ch.isPunct() )
             setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
         }
       } break;
     case Digit:
@@ -752,7 +697,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         {
           if ( ch.isSymbol() || ch.isPunct() )
             setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
-          endStateOfLastPara = Standard;
+          d->endStateOfLastPara = Standard;
         }
       } break;
       case ImportName:
@@ -775,7 +720,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
           {
               if (ch == QLatin1Char(' '))
               {
-                d->emitName();
+                //d->emitName();
               }
               else if (!d->importFrom.isEmpty()) {
                   d->importFrom.clear();
@@ -783,7 +728,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
           }
         }
         if (i == endPos) { // last char in row
-            d->emitName();
+            //d->emitName();
             d->importFrom.clear();
         }
       } break;
@@ -792,7 +737,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         if (prev.isLetterOrNumber() && ch == QLatin1Char(' '))
         {
             // start import statement
-            endStateOfLastPara = Standard; //ImportName;
+            d->endStateOfLastPara = Standard; //ImportName;
         }
         else if ( ch.isLetterOrNumber() || ch == QLatin1Char('_') )
         {
@@ -807,17 +752,74 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
   }
 
   // only block comments can have several lines
-  if ( endStateOfLastPara != Blockcomment1 && endStateOfLastPara != Blockcomment2 ) 
+  if ( d->endStateOfLastPara != Blockcomment1 && d->endStateOfLastPara != Blockcomment2 )
   {
-    endStateOfLastPara = Standard ;
+    d->endStateOfLastPara = Standard ;
   } 
 
-  setCurrentBlockState(endStateOfLastPara);
+  setCurrentBlockState(static_cast<int>(d->endStateOfLastPara));
 }
 
-void PythonSyntaxHighlighter::setPythonEditor(PythonEditor *editor)
+
+void PythonSyntaxHighlighter::setComment(int pos, int len)
 {
-    d->editor = editor;
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::Comment));
+    d->endStateOfLastPara = Comment;
 }
+
+void PythonSyntaxHighlighter::setSingleQuotString(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::String));
+    d->endStateOfLastPara = Literal2;
+}
+
+void PythonSyntaxHighlighter::setDoubleQuotString(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::String));
+    d->endStateOfLastPara = Literal1;
+
+}
+
+void PythonSyntaxHighlighter::setSingleQuotBlockComment(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::BlockComment));
+    d->endStateOfLastPara = Blockcomment2;
+}
+
+void PythonSyntaxHighlighter::setDoubleQuotBlockComment(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::BlockComment));
+    d->endStateOfLastPara = Blockcomment1;
+}
+
+void PythonSyntaxHighlighter::setOperator(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::Operator));
+    d->endStateOfLastPara = Standard;
+}
+
+void PythonSyntaxHighlighter::setKeyword(int pos, int len)
+{
+    QTextCharFormat keywordFormat;
+    keywordFormat.setForeground(this->colorByType(SyntaxHighlighter::Keyword));
+    keywordFormat.setFontWeight(QFont::Bold);
+    setFormat(pos, len, keywordFormat);
+    d->endStateOfLastPara = Standard;
+}
+
+void PythonSyntaxHighlighter::setText(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::Text));
+    d->endStateOfLastPara = Standard;
+}
+
+void PythonSyntaxHighlighter::setNumber(int pos, int len)
+{
+    setFormat(pos, len, this->colorByType(SyntaxHighlighter::Number));
+    d->endStateOfLastPara = Digit;
+}
+
+
+
 
 #include "moc_PythonEditor.cpp"
