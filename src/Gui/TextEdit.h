@@ -89,6 +89,7 @@ public:
 
     void lineNumberAreaPaintEvent(QPaintEvent* );
     int lineNumberAreaWidth();
+    int findAndHighlight(const QString needle);
 
 private Q_SLOTS:
     void updateLineNumberAreaWidth(int newBlockCount);

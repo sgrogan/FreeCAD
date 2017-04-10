@@ -328,11 +328,32 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
             TextEditor::keyPressEvent(e);
         }
     }   break;
-
     default:
     {
+        QString insertAfter;
+        static int previousKey = 0;
+        if (e->key() == Qt::Key_ParenLeft)
+            insertAfter = QLatin1String(")");
+        else if (e->key() == Qt::Key_BraceLeft)
+            insertAfter = QLatin1String("}");
+        else if (e->key() == Qt::Key_BracketLeft)
+            insertAfter = QLatin1String("]");
+        else if (e->key() == Qt::Key_QuoteDbl && previousKey != e->key())
+            insertAfter = QLatin1String("\"");
+        else if (e->key() == Qt::Key_Apostrophe && previousKey != e->key())
+            insertAfter = QLatin1String("'");
+
         autoIndented = false;
         TextEditor::keyPressEvent(e);
+
+        if (insertAfter.size()) {
+            QTextCursor cursor = textCursor();
+            cursor.insertText(insertAfter);
+            cursor.movePosition(QTextCursor::Left);
+            setTextCursor(cursor);
+        }
+
+        previousKey = e->key();
     }   break;
     }
 

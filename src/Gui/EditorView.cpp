@@ -41,6 +41,11 @@
 # include <QTimer>
 #endif
 
+#include <QPushButton>
+#include <QLabel>
+#include <QLineEdit>
+#include <QShortcut>
+
 #include "EditorView.h"
 #include "Application.h"
 #include "BitmapFactory.h"
@@ -58,6 +63,7 @@ namespace Gui {
 class EditorViewP {
 public:
     QPlainTextEdit* textEdit;
+    EditorSearchBar* searchBar;
     QString fileName;
     EditorView::DisplayName displayName;
     QTimer*  activityTimer;
@@ -67,6 +73,7 @@ public:
     QStringList redos;
 };
 }
+
 
 // -------------------------------------------------------
 
@@ -87,14 +94,24 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
     d->textEdit = editor;
     d->textEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
 
+    // create searchbar
+    d->searchBar = new EditorSearchBar(this, d);
+
     // Create the layout containing the workspace and a tab bar
+    QVBoxLayout* vLayout = new QVBoxLayout(this);
+    QFrame*      vbox  = new QFrame(this);
+    vLayout->setMargin(0);
+    vLayout->addWidget(d->textEdit);
+    vLayout->addWidget(d->searchBar);
+    vbox->setLayout(vLayout);
+
     QFrame* hbox = new QFrame(this);
     hbox->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-    QHBoxLayout* layout = new QHBoxLayout();
-    layout->setMargin(1);
-    layout->addWidget(d->textEdit);
-    d->textEdit->setParent(hbox);
-    hbox->setLayout(layout);
+    QHBoxLayout* hLayout = new QHBoxLayout(this);
+    hLayout->setMargin(1);
+    hLayout->addWidget(vbox);
+    d->textEdit->setParent(vbox);
+    hbox->setLayout(hLayout);
     setCentralWidget(hbox);
 
     setCurrentFileName(QString());
@@ -117,6 +134,10 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
             this, SLOT(redoAvailable(bool)));
     connect(d->textEdit->document(), SIGNAL(contentsChange(int, int, int)),
             this, SLOT(contentsChange(int, int, int)));
+
+    QShortcut* find = new QShortcut(this);
+    find->setKey(Qt::CTRL + Qt::Key_F );
+    connect(find, SIGNAL(activated()), d->searchBar, SLOT(show()));
 }
 
 /** Destroys the object and frees any allocated resources */
@@ -627,6 +648,182 @@ void PythonEditorView::showDebugMarker(int line)
 void PythonEditorView::hideDebugMarker()
 {
     _pye->hideDebugMarker();
+}
+
+// -------------------------------------------------------------------------------------
+
+
+EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
+    QFrame(parent),
+    d(editorViewP)
+{
+    // find row
+    QGridLayout *layout  = new QGridLayout(this);
+    QLabel      *lblFind = new QLabel(this);
+    m_foundCountLabel    = new QLabel(this);
+    m_searchEdit         = new QLineEdit(this);
+    m_searchButton       = new QPushButton(this);
+    m_upButton           = new QPushButton(this);
+    m_downButton         = new QPushButton(this);
+    m_hideButton         = new QPushButton(this);
+
+
+    lblFind->setText(tr("Find:"));
+    m_searchButton->setText(tr("Search"));
+    m_upButton->setIcon(BitmapFactory().iconFromTheme("button_left"));
+    m_downButton->setIcon(BitmapFactory().iconFromTheme("button_right"));
+    m_searchEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    m_foundCountLabel->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    m_hideButton->setIcon(BitmapFactory().iconFromTheme("delete"));
+
+    layout->addWidget(lblFind, 0, 0);
+    layout->addWidget(m_searchEdit, 0, 1);
+    layout->addWidget(m_searchButton, 0, 2);
+    layout->addWidget(m_foundCountLabel, 0, 3);
+    layout->addWidget(m_upButton, 0, 4);
+    layout->addWidget(m_downButton, 0, 5);
+    layout->addWidget(m_hideButton, 0, 6);
+
+    // replace row
+    QLabel *lblReplace     = new QLabel(this);
+    m_replaceEdit          = new QLineEdit(this);
+    m_replaceButton        = new QPushButton(this);
+    m_replaceAndNextButton = new QPushButton(this);
+    m_replaceAllButton     = new QPushButton(this);
+    QHBoxLayout *buttonBox = new QHBoxLayout(this);
+
+    lblReplace->setText(tr("Replace:"));
+    m_replaceEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    layout->addWidget(lblReplace, 1, 0);
+    layout->addWidget(m_replaceEdit, 1, 1);
+
+    m_replaceButton->setText(tr("Replace"));
+    m_replaceAndNextButton->setText(tr("Replace & find"));
+    m_replaceAllButton->setText(tr("Replace All"));
+    buttonBox->addWidget(m_replaceButton);
+    buttonBox->addWidget(m_replaceAndNextButton);
+    buttonBox->addWidget(m_replaceAllButton);
+    layout->addLayout(buttonBox, 1, 2, 1, 5);
+
+    setLayout(layout);
+
+    connect(m_hideButton, SIGNAL(clicked()), this, SLOT(hide()));
+    connect(m_upButton, SIGNAL(clicked()), this, SLOT(upSearch()));
+    connect(m_downButton, SIGNAL(clicked()), this, SLOT(downSearch()));
+    connect(m_searchButton, SIGNAL(clicked()), this, SLOT(downSearch()));
+    connect(m_searchEdit, SIGNAL(returnPressed()), this, SLOT(downSearch()));
+    connect(m_searchEdit, SIGNAL(textChanged(QString)),
+                        this, SLOT(searchChanged(QString)));
+
+    connect(m_replaceButton, SIGNAL(clicked()), this, SLOT(replace()));
+    connect(m_replaceAndNextButton, SIGNAL(clicked()),
+                        this, SLOT(replaceAndFind()));
+    connect(m_replaceAllButton, SIGNAL(clicked()),
+                        this, SLOT(replaceAll()));
+
+
+    hide();
+}
+
+EditorSearchBar::~EditorSearchBar()
+{
+}
+
+void EditorSearchBar::show()
+{
+    QFrame::show();
+    m_searchEdit->setFocus();
+}
+
+void EditorSearchBar::upSearch(bool cycle)
+{
+    if (m_searchEdit->text().size()) {
+        if (!d->textEdit->find(m_searchEdit->text(), QTextDocument::FindBackward)
+            && cycle)
+        {
+            // start over
+            QTextCursor cursor = d->textEdit->textCursor();
+            if (!cursor.isNull()) {
+                cursor.movePosition(QTextCursor::End);
+                d->textEdit->setTextCursor(cursor);
+            }
+            return upSearch(false);
+        }
+    }
+    d->textEdit->repaint();
+    m_searchEdit->setFocus();
+}
+
+void EditorSearchBar::downSearch(bool cycle)
+{
+    if (m_searchEdit->text().size()) {
+        if (!d->textEdit->find(m_searchEdit->text()) && cycle) {
+            // start over
+            QTextCursor cursor = d->textEdit->textCursor();
+            if (!cursor.isNull()) {
+                cursor.movePosition(QTextCursor::Start);
+                d->textEdit->setTextCursor(cursor);
+            }
+            return downSearch(false);
+        }
+    }
+    d->textEdit->repaint();
+    m_searchEdit->setFocus();
+}
+
+void EditorSearchBar::foundCount(int foundOcurrences)
+{
+    QString found = QString::number(foundOcurrences);
+    m_foundCountLabel->setText(tr("Found: %1 occurences").arg(found));
+}
+
+void EditorSearchBar::searchChanged(const QString &str)
+{
+    int found = static_cast<TextEditor*>(d->textEdit)->findAndHighlight(str);
+    d->textEdit->repaint();
+    foundCount(found);
+}
+
+void EditorSearchBar::replace()
+{
+    if (!m_replaceEdit->text().size() || !m_searchEdit->text().size())
+        return;
+
+    QTextCursor cursor = d->textEdit->textCursor();
+    if (cursor.hasSelection()) {
+        cursor.insertText(m_replaceEdit->text());
+        searchChanged(m_searchEdit->text());
+    }
+}
+
+void EditorSearchBar::replaceAndFind()
+{
+    if (!m_replaceEdit->text().size() || !m_searchEdit->text().size())
+        return;
+
+    replace();
+    d->textEdit->find(m_searchEdit->text());
+}
+
+void EditorSearchBar::replaceAll()
+{
+    if (!m_replaceEdit->text().size() || !m_searchEdit->text().size())
+        return;
+
+    QTextCursor cursor = d->textEdit->textCursor();
+    int oldPos = cursor.position();
+
+    cursor = d->textEdit->document()->find(m_searchEdit->text());
+
+    while (!cursor.isNull()) {
+        cursor.insertText(m_replaceEdit->text());
+        cursor = d->textEdit->document()->find(m_searchEdit->text(), cursor);
+    }
+
+    searchChanged(m_searchEdit->text());
+
+    cursor.setPosition(oldPos);
+    d->textEdit->setTextCursor(cursor);
 }
 
 #include "moc_EditorView.cpp"

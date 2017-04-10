@@ -264,6 +264,33 @@ int TextEditor::lineNumberAreaWidth()
     return fontMetrics().width(QLatin1String("0000"))+10;
 }
 
+int TextEditor::findAndHighlight(const QString needle)
+{
+    QList<QTextEdit::ExtraSelection> selections;
+
+    int foundCount = 0;
+    if (needle.size()) {
+        QTextCharFormat format;
+        format.setForeground(QColor(QLatin1String("#110059")));
+        format.setBackground(QColor(QLatin1String("#f7f74f")));
+
+        QTextDocument *doc = document();
+        QTextCursor cursor = doc->find(needle);
+
+        while (!cursor.isNull()) {
+            QTextEdit::ExtraSelection selection;
+            selection.format = format;
+            selection.cursor = cursor;
+            selections.append(selection);
+            ++foundCount;
+            cursor = doc->find(needle, cursor);
+        }
+    }
+
+    setExtraSelections(selections);
+    return foundCount;
+}
+
 void TextEditor::updateLineNumberAreaWidth(int /* newBlockCount */)
 {
     setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);

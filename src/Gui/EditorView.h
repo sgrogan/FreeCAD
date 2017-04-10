@@ -30,12 +30,14 @@
 QT_BEGIN_NAMESPACE
 class QPlainTextEdit;
 class QPrinter;
+class QLabel;
+class QPushButton;
+class QLineEdit;
 QT_END_NAMESPACE
 
 namespace Gui {
 
 class EditorViewP;
-
 /**
  * A special view class which sends the messages from the application to
  * the editor and embeds it in a window.
@@ -104,6 +106,7 @@ private:
 
 private:
     EditorViewP* d;
+    friend class EditorSearchBar;
 };
 
 class PythonEditor;
@@ -127,6 +130,44 @@ public Q_SLOTS:
 
 private:
     PythonEditor* _pye;
+};
+
+/**
+ * @brief The EditorSearchBar class
+ * holds the widgets in the search/find in document
+ */
+class EditorSearchBar : public QFrame
+{
+    Q_OBJECT
+public:
+    EditorSearchBar(EditorView *parent, EditorViewP *editorViewP);
+    ~EditorSearchBar();
+
+public Q_SLOTS:
+    void show();
+
+private Q_SLOTS:
+    void upSearch(bool cycle = true);
+    void downSearch(bool cycle = true);
+    void foundCount(int foundOcurrences);
+    void searchChanged(const QString &str);
+    void replace();
+    void replaceAndFind();
+    void replaceAll();
+
+private:
+    QLabel      *m_foundCountLabel;
+    QLineEdit   *m_searchEdit;
+    QPushButton *m_searchButton;
+    QPushButton *m_upButton;
+    QPushButton *m_downButton;
+    QPushButton *m_hideButton;
+    QLineEdit   *m_replaceEdit;
+    QPushButton *m_replaceButton;
+    QPushButton *m_replaceAndNextButton;
+    QPushButton *m_replaceAllButton;
+
+    EditorViewP *d;
 };
 
 } // namespace Gui
