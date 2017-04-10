@@ -79,6 +79,28 @@ void TextEdit::keyPressEvent(QKeyEvent* e)
 }
 
 /**
+ * @brief Highlights text such as matching parentesis
+ * @param pos = position in text
+ * @param len = length to highlight, highlights to right
+ * @param format = using this format
+ */
+void TextEdit::highlightText(int pos, int len, const QTextCharFormat format)
+{
+    QList<QTextEdit::ExtraSelection> selections = extraSelections();
+
+    QTextEdit::ExtraSelection selection;
+    selection.format = format;
+
+    QTextCursor cursor = textCursor();
+    cursor.setPosition(pos);
+    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, len);
+    selection.cursor = cursor;
+
+    selections.append(selection);
+    setExtraSelections(selections);
+}
+
+/**
  * Completes the word.
  */
 void TextEdit::complete()

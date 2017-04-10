@@ -91,6 +91,7 @@ struct PythonConsoleP
     PyObject *_stdoutPy, *_stderrPy, *_stdinPy, *_stdin;
     InteractiveInterpreter* interpreter;
     CallTipsList* callTipsList;
+    PythonMatchingChars* matchingChars;
     ConsoleHistory history;
     QString output, error, info;
     QStringList statements;
@@ -470,6 +471,8 @@ PythonConsole::PythonConsole(QWidget *parent)
     .arg(QString::fromLatin1(version)).arg(QString::fromLatin1(platform));
     d->output = d->info;
     printPrompt(PythonConsole::Complete);
+
+    d->matchingChars = new PythonMatchingChars(this);
 }
 
 /** Destroys the object and frees any allocated resources */

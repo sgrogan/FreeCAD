@@ -60,6 +60,7 @@ struct PythonEditorP
     QString filename;
     PythonDebugger* debugger;
     CallTipsList* callTipsList;
+    PythonMatchingChars* matchingChars;
     PythonEditorP()
         : debugLine(-1),
           breakpoint(BitmapFactory().iconFromTheme("breakpoint").pixmap(16,16)),
@@ -69,6 +70,7 @@ struct PythonEditorP
         debugger = Application::Instance->macroManager()->debugger();
     }
 };
+
 } // namespace Gui
 
 /* TRANSLATOR Gui::PythonEditor */
@@ -100,7 +102,9 @@ PythonEditor::PythonEditor(QWidget* parent)
     connect(uncomment, SIGNAL(activated()), 
             this, SLOT(onUncomment()));
     connect(autoIndent, SIGNAL(activated()),
-            this, SLOT(onUncomment()));
+            this, SLOT(onAutoIndent()));
+
+    d->matchingChars = new PythonMatchingChars(this);
 
     // create the window for call tips
     d->callTipsList = new CallTipsList(this); //, QLatin1String("__scriptcompletion__"));
@@ -122,6 +126,29 @@ PythonEditor::~PythonEditor()
 void PythonEditor::setFileName(const QString& fn)
 {
     d->filename = fn;
+}
+
+int PythonEditor::findText(const QString find)
+{
+    if (!find.size())
+        return 0;
+
+    QTextCharFormat format;
+    format.setForeground(QColor(QLatin1String("#110059")));
+    format.setBackground(QColor(QLatin1String("#fff356")));
+
+    int found = 0;
+    for (QTextBlock block = document()->begin();
+         block.isValid(); block = block.next())
+    {
+        int pos = block.text().indexOf(find);
+        if (pos > -1) {
+            ++found;
+            highlightText(block.position() + pos, find.size(), format);
+        }
+    }
+
+    return found;
 }
 
 void PythonEditor::startDebug()
@@ -197,7 +224,8 @@ void PythonEditor::contextMenuEvent ( QContextMenuEvent * e )
 void PythonEditor::keyPressEvent(QKeyEvent * e)
 {
     QTextCursor cursor = this->textCursor();
-    QTextCursor inputLineBegin = this->inputBegin();
+    QTextCursor inputLineBegin = this->textCursor();
+    inputLineBegin.movePosition( QTextCursor::StartOfLine );
     static bool autoIndented = false;
 
     /**
@@ -314,16 +342,6 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
     { d->callTipsList->validateCursor(); }
 }
 
-QTextCursor PythonEditor::inputBegin( void ) const
-{
-  // construct cursor at begin of input line ...
-  QTextCursor inputLineBegin( this->textCursor() );
-  inputLineBegin.movePosition( QTextCursor::EndOfLine );
-  inputLineBegin.movePosition( QTextCursor::StartOfLine );
-  // ... and move cursor right beyond the prompt.
-  //inputLineBegin.movePosition( QTextCursor::Right, QTextCursor::MoveAnchor, promptLength( inputLineBegin.block().text() ) );
-  return inputLineBegin;
-}
 
 void PythonEditor::onComment()
 {
@@ -529,6 +547,10 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
   int i = 0;
   QChar prev, ch;
   int endPos = text.length() - 1;
+  int blockPos = currentBlock().position();
+
+  PythonTextBlockData *blockData = new PythonTextBlockData;
+  setCurrentBlockUserData(blockData);
 
   d->endStateOfLastPara = static_cast<PythonSyntaxHighlighter::States>(previousBlockState());
   if (d->endStateOfLastPara < 0 || d->endStateOfLastPara > maximumUserState())
@@ -575,7 +597,12 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
           {
             // ignore whitespaces
           } break;
-        case '(': case '[': case ')': case ']':
+        case '(': case '[': case '{':
+        case '}': case ')': case ']':
+          {
+            blockData->insert(ch.toLatin1(), blockPos + i);
+            setOperator(i, 1);
+          } break;
         case '+': case '-': case '*': case '/': 
         case ':': case '%': case '^': case '~': 
         case '!': case '=': case '<': case '>': // possibly two characters
@@ -609,7 +636,7 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
                   d->endStateOfLastPara = FromName;
               }
               else {
-                setText(i, 1);
+                setText(i, buffer.size());
               }
 
               // increment i
@@ -669,6 +696,9 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         }
         else
         {
+          if (MatchingCharInfo::matchChar(ch.toLatin1()))
+            blockData->insert(ch.toLatin1(), blockPos + i);
+
           if ( ch.isSymbol() || ch.isPunct() )
             setFormat(i, 1, this->colorByType(SyntaxHighlighter::Operator));
           d->endStateOfLastPara = Standard;
@@ -682,6 +712,9 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         }
         else
         {
+          if (MatchingCharInfo::matchChar(ch.toLatin1()))
+            blockData->insert(ch.toLatin1(), blockPos + i);
+
           if (ch.isSymbol() || ch.isPunct() )
             setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
           d->endStateOfLastPara = Standard;
@@ -695,6 +728,9 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         }
         else
         {
+          if (MatchingCharInfo::matchChar(ch.toLatin1()))
+            blockData->insert(ch.toLatin1(), blockPos + i);
+
           if ( ch.isSymbol() || ch.isPunct() )
             setFormat( i, 1, this->colorByType(SyntaxHighlighter::Operator));
           d->endStateOfLastPara = Standard;
@@ -705,7 +741,10 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         if ( ch.isLetterOrNumber() ||
              ch == QLatin1Char('_') || ch == QLatin1Char('*')  )
         {
-          setFormat( i, 1, this->colorByType(SyntaxHighlighter::Text));
+          QTextCharFormat format;
+          format.setForeground(this->colorByType(SyntaxHighlighter::Text));
+          format.setFontWeight(QFont::Bold);
+          setFormat(i, 1, format);
           d->importName += ch;
         }
         else
@@ -741,7 +780,10 @@ void PythonSyntaxHighlighter::highlightBlock (const QString & text)
         }
         else if ( ch.isLetterOrNumber() || ch == QLatin1Char('_') )
         {
-          setFormat( i, 1, this->colorByType(SyntaxHighlighter::Classname));
+          QTextCharFormat format;
+          format.setForeground(this->colorByType(SyntaxHighlighter::Text));
+          format.setFontWeight(QFont::Bold);
+          setFormat(i, 1, format);
           d->importFrom += ch;
         }
       } break;
@@ -820,6 +862,190 @@ void PythonSyntaxHighlighter::setNumber(int pos, int len)
 }
 
 
+// --------------------------------------------------------------------------------------------
+
+
+MatchingCharInfo::MatchingCharInfo():
+    character(0), position(0)
+{
+}
+
+MatchingCharInfo::MatchingCharInfo(const MatchingCharInfo &other)
+{
+    character = other.character;
+    position = other.position;
+}
+
+MatchingCharInfo::MatchingCharInfo(char chr, int pos):
+    character(chr), position(pos)
+{
+}
+
+//static
+char MatchingCharInfo::matchChar(char match)
+{
+    switch (match) {
+    case '(':
+       return ')';
+    case ')':
+       return '(';
+    case '[':
+       return ']';
+    case ']':
+       return '[';
+    case '{':
+       return '}';
+    case '}':
+       return '{';
+    default:
+       return 0;
+    }
+}
+
+char MatchingCharInfo::matchingChar() const
+{
+    return MatchingCharInfo::matchChar(character);
+}
+
+// -------------------------------------------------------------------------------------------
+
+
+
+PythonTextBlockData::PythonTextBlockData()
+{
+}
+
+PythonTextBlockData::~PythonTextBlockData()
+{
+    qDeleteAll(m_matchingChrs);
+}
+
+QVector<MatchingCharInfo *> PythonTextBlockData::matchingChars()
+{
+    return m_matchingChrs;
+}
+
+
+void PythonTextBlockData::insert(MatchingCharInfo *info)
+{
+    int i = 0;
+    while (i < m_matchingChrs.size() &&
+           info->position > m_matchingChrs.at(i)->position)
+        ++i;
+
+    m_matchingChrs.insert(i, info);
+}
+
+void PythonTextBlockData::insert(char chr, int pos)
+{
+    MatchingCharInfo *info = new MatchingCharInfo(chr, pos);
+    insert(info);
+}
+
+// -------------------------------------------------------------------------------------
+
+
+
+PythonMatchingChars::PythonMatchingChars(TextEdit *parent):
+    QObject(parent),
+    m_editor(parent)
+{
+    // for matching chars such as (, [, { etc.
+    connect(parent, SIGNAL(cursorPositionChanged()),
+            this, SLOT(cursorPositionChange()));
+}
+
+PythonMatchingChars::~PythonMatchingChars()
+{
+}
+
+
+void PythonMatchingChars::cursorPositionChange()
+{
+    char leftChr = 0,
+         rightChr = 0;
+    PythonTextBlockData *data = nullptr;
+
+    QList<QTextEdit::ExtraSelection> selections;
+    m_editor->setExtraSelections(selections);
+
+    QTextCursor cursor = m_editor->textCursor();
+    int startPos = cursor.position(),
+        matchSkip = 0;
+
+    // grab right char from cursor
+    if (cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor)) {
+        leftChr = cursor.selectedText()[0].toLatin1();
+    }
+
+
+    QTextCharFormat format;
+    format.setForeground(QColor(QLatin1String("#f43218")));
+    format.setBackground(QColor(QLatin1String("#f9c7f6")));
+
+    if (leftChr == '(' || leftChr == '[' || leftChr == '{') {
+        for (QTextBlock block = cursor.block();
+             block.isValid(); block = block.next())
+        {
+            data = static_cast<PythonTextBlockData *>(block.userData());
+            if (!data)
+                continue;
+            QVector<MatchingCharInfo *> matchingChars = data->matchingChars();
+            for (const MatchingCharInfo *match : matchingChars) {
+                if (match->position <= startPos)
+                    continue;
+                if (match->character == leftChr) {
+                    ++matchSkip;
+                } else if (match->matchingChar() == leftChr) {
+                    if (matchSkip) {
+                        --matchSkip;
+                    } else {
+                        m_editor->highlightText(startPos, 1, format);
+                        m_editor->highlightText(match->position, 1, format);
+                        return;
+                    }
+                }
+
+            }
+        }
+    }
+
+    // if we get here we didnt find any mathing char on right side
+    // grab left char from cursor
+    cursor.setPosition(startPos);
+    if (cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor)) {
+        rightChr = cursor.selectedText()[0].toLatin1();
+    }
+
+    if (rightChr == ')' || rightChr == ']' || rightChr == '}') {
+        for (QTextBlock block = cursor.block();
+             block.isValid(); block = block.previous())
+        {
+            data = static_cast<PythonTextBlockData *>(block.userData());
+            if (!data)
+                continue;
+            QVector<MatchingCharInfo *> matchingChars = data->matchingChars();
+            QVector<const MatchingCharInfo *>::const_iterator match = matchingChars.end();
+            while (match != matchingChars.begin()) {
+                --match;
+                if ((*match)->position >= startPos -1)
+                    continue;
+                if ((*match)->character == rightChr) {
+                    ++matchSkip;
+                } else if ((*match)->matchingChar() == rightChr) {
+                    if (matchSkip) {
+                        --matchSkip;
+                    } else {
+                        m_editor->highlightText(startPos - 1, 1, format);
+                        m_editor->highlightText((*match)->position, 1, format);
+                        return;
+                    }
+                }
+
+            }
+        }
+    }
+}
 
 
 #include "moc_PythonEditor.cpp"

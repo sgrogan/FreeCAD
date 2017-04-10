@@ -52,6 +52,7 @@ public:
     void importModule(const QString name);
     void importModuleFrom(const QString from, const QString name);
 
+
 public Q_SLOTS:
     /** Inserts a '#' at the beginning of each selected line or the current line if 
      * nothing is selected
@@ -70,6 +71,7 @@ public Q_SLOTS:
     void onAutoIndent();
 
     void setFileName(const QString&);
+    int  findText(const QString find);
     void startDebug();
 
 protected:
@@ -77,7 +79,7 @@ protected:
     void contextMenuEvent ( QContextMenuEvent* e );
     void drawMarker(int line, int x, int y, QPainter*);
     void keyPressEvent(QKeyEvent * e);
-    QTextCursor inputBegin( void ) const;
+    //QTextCursor inputBegin( void ) const;
 
 private:
     //PythonSyntaxHighlighter* pythonSyntax;
@@ -122,6 +124,46 @@ private:
     inline void setKeyword(int pos, int len);
     inline void setText(int pos, int len);
     inline void setNumber(int pos, int len);
+};
+
+struct MatchingCharInfo
+{
+    char character;
+    int position;
+    MatchingCharInfo();
+    MatchingCharInfo(const MatchingCharInfo &other);
+    MatchingCharInfo(char chr, int pos);
+    char matchingChar() const;
+    static char matchChar(char match);
+};
+
+class PythonTextBlockData : public QTextBlockUserData
+{
+public:
+    PythonTextBlockData();
+    ~PythonTextBlockData();
+
+    QVector<MatchingCharInfo *> matchingChars();
+    void insert(MatchingCharInfo *info);
+    void insert(char chr, int pos);
+
+private:
+    QVector<MatchingCharInfo *> m_matchingChrs;
+};
+
+class PythonMatchingChars : public QObject
+{
+    Q_OBJECT
+
+public:
+    PythonMatchingChars(TextEdit *parent);
+    ~PythonMatchingChars();
+
+private Q_SLOTS:
+    void cursorPositionChange();
+
+private:
+    TextEdit *m_editor;
 };
 
 } // namespace Gui

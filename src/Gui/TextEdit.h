@@ -58,6 +58,7 @@ class GuiExport TextEdit : public QPlainTextEdit
 public:
     TextEdit(QWidget *parent = 0);
     virtual ~TextEdit();
+    virtual void highlightText(int pos, int len, const QTextCharFormat format);
 
 private Q_SLOTS:
     void complete();
