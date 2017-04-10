@@ -288,6 +288,33 @@ bool StdCmdToggleBreakpoint::isActive(void)
     return getGuiApplication()->sendHasMsgToActiveView("ToggleBreakpoint");
 }
 
+
+DEF_STD_CMD_A(StdCmdShowSearchBar);
+
+StdCmdShowSearchBar::StdCmdShowSearchBar()
+  : Command("Std_ShowFindBar")
+{
+    sGroup        = QT_TR_NOOP("Macro");
+    sMenuText     = QT_TR_NOOP("Show find");
+    sToolTipText  = QT_TR_NOOP("Show search and replace bar");
+    sWhatsThis    = "Std_ShowFindBar";
+    sStatusTip    = QT_TR_NOOP("Show find");
+    sPixmap       = 0;
+    sAccel        = "Ctrl+F";
+    eType         = 0;
+}
+
+void StdCmdShowSearchBar::activated(int iMsg)
+{
+    Q_UNUSED(iMsg);
+    doCommand(Command::Gui,"Gui.SendMsgToActiveView(\"ShowFindBar\")");
+}
+
+bool StdCmdShowSearchBar::isActive(void)
+{
+    return getGuiApplication()->sendHasMsgToActiveView("ShowFindBar");
+}
+
 namespace Gui {
 
 void CreateMacroCommands(void)
@@ -302,6 +329,7 @@ void CreateMacroCommands(void)
     rcCmdMgr.addCommand(new StdCmdMacroStepOver());
     rcCmdMgr.addCommand(new StdCmdMacroStepInto());
     rcCmdMgr.addCommand(new StdCmdToggleBreakpoint());
+    rcCmdMgr.addCommand(new StdCmdShowSearchBar());
 }
 
 } // namespace Gui

@@ -82,6 +82,8 @@ public:
     void printPdf();
     void printPreview();
     void print(QPrinter*);
+    void showFindBar();
+    void hideFindBar();
     //@}
 
     QStringList undoActions() const;

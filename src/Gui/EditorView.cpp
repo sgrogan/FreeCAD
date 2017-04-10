@@ -98,7 +98,7 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
     d->searchBar = new EditorSearchBar(this, d);
 
     // Create the layout containing the workspace and a tab bar
-    QVBoxLayout* vLayout = new QVBoxLayout(this);
+    QVBoxLayout* vLayout = new QVBoxLayout;
     QFrame*      vbox  = new QFrame(this);
     vLayout->setMargin(0);
     vLayout->addWidget(d->textEdit);
@@ -107,7 +107,7 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
 
     QFrame* hbox = new QFrame(this);
     hbox->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-    QHBoxLayout* hLayout = new QHBoxLayout(this);
+    QHBoxLayout* hLayout = new QHBoxLayout;
     hLayout->setMargin(1);
     hLayout->addWidget(vbox);
     d->textEdit->setParent(vbox);
@@ -215,6 +215,12 @@ bool EditorView::onMsg(const char* pMsg,const char** /*ppReturn*/)
     } else if (strcmp(pMsg,"ViewFit")==0){
         // just ignore this
         return true;
+    } else if (strcmp(pMsg,"ShowFindBar")==0){
+        showFindBar();
+        return true;
+    } else if (strcmp(pMsg,"HideFindBar")==0){
+        hideFindBar();
+        return true;
     }
 
     return false;
@@ -253,6 +259,10 @@ bool EditorView::onHasMsg(const char* pMsg) const
         return d->textEdit->document()->isUndoAvailable ();
     } else if (strcmp(pMsg,"Redo")==0) {
         return d->textEdit->document()->isRedoAvailable ();
+    } else if (strcmp(pMsg,"ShowFindBar")==0) {
+        return d->searchBar->isHidden();
+    } else if (strcmp(pMsg,"HideFindBar")==0) {
+        return !d->searchBar->isHidden();;
     }
 
     return false;
@@ -407,6 +417,16 @@ void EditorView::printPreview()
 void EditorView::print(QPrinter* printer)
 {
     d->textEdit->document()->print(printer);
+}
+
+void EditorView::showFindBar()
+{
+    d->searchBar->show();
+}
+
+void EditorView::hideFindBar()
+{
+    d->searchBar->hide();
 }
 
 /**
@@ -690,7 +710,7 @@ EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
     m_replaceButton        = new QPushButton(this);
     m_replaceAndNextButton = new QPushButton(this);
     m_replaceAllButton     = new QPushButton(this);
-    QHBoxLayout *buttonBox = new QHBoxLayout(this);
+    QHBoxLayout *buttonBox = new QHBoxLayout;
 
     lblReplace->setText(tr("Replace:"));
     m_replaceEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
