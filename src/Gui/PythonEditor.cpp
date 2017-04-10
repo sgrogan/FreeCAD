@@ -331,17 +331,30 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
     default:
     {
         QString insertAfter;
-        static int previousKey = 0;
-        if (e->key() == Qt::Key_ParenLeft)
+        static QString previousKeyText;
+        if (e->key() == Qt::Key_ParenLeft) {
             insertAfter = QLatin1String(")");
-        else if (e->key() == Qt::Key_BraceLeft)
+        } else if (e->key() == Qt::Key_BraceLeft) {
             insertAfter = QLatin1String("}");
-        else if (e->key() == Qt::Key_BracketLeft)
+        } else if (e->key() == Qt::Key_BracketLeft) {
             insertAfter = QLatin1String("]");
-        else if (e->key() == Qt::Key_QuoteDbl && previousKey != e->key())
-            insertAfter = QLatin1String("\"");
-        else if (e->key() == Qt::Key_Apostrophe && previousKey != e->key())
-            insertAfter = QLatin1String("'");
+        } else if (e->key() == Qt::Key_QuoteDbl) {
+            if (previousKeyText != e->text()) {
+                insertAfter = QLatin1String("\"");
+            } else { // last char was autoinserted, we wwant to step over
+                QTextCursor cursor = textCursor();
+                cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+                setTextCursor(cursor);
+            }
+        } else if (e->key() == Qt::Key_Apostrophe) {
+            if (previousKeyText != e->text()) {
+                insertAfter = QLatin1String("'");
+            } else { // last char was autoinserted, we wwant to step over
+                QTextCursor cursor = textCursor();
+                cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+                setTextCursor(cursor);
+            }
+        }
 
         autoIndented = false;
         TextEditor::keyPressEvent(e);
@@ -353,7 +366,9 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
             setTextCursor(cursor);
         }
 
-        previousKey = e->key();
+        // need to use string instead of key as modifiers messes up otherwise
+        if (e->text().size())
+            previousKeyText = e->text();
     }   break;
     }
 
