@@ -332,6 +332,7 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
     {
         QString insertAfter;
         static QString previousKeyText;
+        bool clearPrevious = false;
         if (e->key() == Qt::Key_ParenLeft) {
             insertAfter = QLatin1String(")");
         } else if (e->key() == Qt::Key_BraceLeft) {
@@ -345,6 +346,7 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
                 QTextCursor cursor = textCursor();
                 cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
                 setTextCursor(cursor);
+                clearPrevious = true; // only do this once, not on consecutive presses
             }
         } else if (e->key() == Qt::Key_Apostrophe) {
             if (previousKeyText != e->text()) {
@@ -353,6 +355,7 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
                 QTextCursor cursor = textCursor();
                 cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
                 setTextCursor(cursor);
+                clearPrevious = true; // only do this once, not on consecutive presses
             }
         }
 
@@ -367,7 +370,9 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
         }
 
         // need to use string instead of key as modifiers messes up otherwise
-        if (e->text().size())
+        if (clearPrevious)
+            previousKeyText.clear();
+        else if (e->text().size())
             previousKeyText = e->text();
     }   break;
     }
