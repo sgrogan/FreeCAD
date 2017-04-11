@@ -194,7 +194,7 @@ void PythonEditor::hideDebugMarker()
 void PythonEditor::drawMarker(int line, int x, int y, QPainter* p)
 {
     Breakpoint bp = d->debugger->getBreakpoint(d->filename);
-    if (bp.checkLine(line)) {
+    if (bp.containsLine(line)) {
         p->drawPixmap(x, y, d->breakpoint);
     }
     if (d->debugLine == line) {

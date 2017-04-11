@@ -39,6 +39,125 @@
 
 using namespace Gui;
 
+
+BreakPointLine::BreakPointLine(int lineNr):
+    m_lineNr(lineNr), m_hitCount(0),
+    m_ignoreTo(0), m_ignoreFrom(0),
+    m_disabled(false)
+{
+}
+
+BreakPointLine::BreakPointLine(const BreakPointLine &other)
+{
+    *this = other;
+}
+
+BreakPointLine::~BreakPointLine()
+{
+}
+
+BreakPointLine& BreakPointLine::operator=(const BreakPointLine& other)
+{
+    m_condition = other.m_condition;
+    m_lineNr = other.m_lineNr;
+    m_hitCount = 0; // dont copy hit counts
+    m_ignoreTo = other.m_ignoreTo;
+    m_ignoreFrom = other.m_ignoreFrom;
+    m_disabled = other.m_disabled;
+    return *this;
+}
+
+//inline
+bool BreakPointLine::operator ==(int lineNr) const
+{
+    return m_lineNr == lineNr;
+}
+
+//inline
+bool BreakPointLine::operator !=(int lineNr) const
+{
+    return m_lineNr != lineNr;
+}
+
+bool BreakPointLine::operator<(const BreakPointLine &other) const
+{
+    return m_lineNr < other.m_lineNr;
+}
+
+bool BreakPointLine::operator<(const int &line) const
+{
+    return m_lineNr < line;
+}
+
+int BreakPointLine::lineNr() const
+{
+    return m_lineNr;
+}
+
+// inline
+bool BreakPointLine::hit()
+{
+    ++m_hitCount;
+    if (m_disabled)
+        return false;
+    if (m_ignoreFrom > 0 && m_ignoreFrom < m_hitCount)
+        return true;
+    if (m_ignoreTo < m_hitCount)
+        return true;
+
+    return false;
+}
+
+void BreakPointLine::reset()
+{
+    m_hitCount = 0;
+}
+
+void BreakPointLine::setCondition(const QString condition)
+{
+    m_condition = condition;
+}
+
+const QString BreakPointLine::condition() const
+{
+    return m_condition;
+}
+
+void BreakPointLine::setIgnoreTo(int ignore)
+{
+    m_ignoreTo = ignore;
+}
+
+int BreakPointLine::ignoreTo() const
+{
+    return m_ignoreTo;
+}
+
+void BreakPointLine::setIgnoreFrom(int ignore)
+{
+    m_ignoreFrom = ignore;
+}
+
+int BreakPointLine::ignoreFrom() const
+{
+    return m_ignoreFrom;
+}
+
+void BreakPointLine::setDisabled(bool disable)
+{
+    m_disabled = disable;
+}
+
+bool BreakPointLine::disabled() const
+{
+    return m_disabled;
+}
+
+
+
+
+// -------------------------------------------------------------------------------------
+
 Breakpoint::Breakpoint()
 {
 }
@@ -46,8 +165,9 @@ Breakpoint::Breakpoint()
 Breakpoint::Breakpoint(const Breakpoint& rBp)
 {
     setFilename(rBp.filename());
-    for (std::set<int>::const_iterator it = rBp._linenums.begin(); it != rBp._linenums.end(); ++it)
-        _linenums.insert(*it);
+    for (BreakPointLine bp : rBp._lines) {
+        _lines.push_back(bp);
+    }
 }
 
 Breakpoint& Breakpoint::operator= (const Breakpoint& rBp)
@@ -55,9 +175,10 @@ Breakpoint& Breakpoint::operator= (const Breakpoint& rBp)
     if (this == &rBp)
         return *this;
     setFilename(rBp.filename());
-    _linenums.clear();
-    for (std::set<int>::const_iterator it = rBp._linenums.begin(); it != rBp._linenums.end(); ++it)
-        _linenums.insert(*it);
+    _lines.clear();
+    for (BreakPointLine bp : rBp._lines) {
+        _lines.push_back(bp);
+    }
     return *this;
 }
 
@@ -73,28 +194,63 @@ void Breakpoint::setFilename(const QString& fn)
 
 void Breakpoint::addLine(int line)
 {
-    _linenums.insert(line);
+    removeLine(line);
+    BreakPointLine bLine(line);
+    _lines.push_back(bLine);
+}
+
+void Breakpoint::addLine(BreakPointLine bpl)
+{
+    removeLine(bpl.lineNr());
+    _lines.push_back(bpl);
 }
 
 void Breakpoint::removeLine(int line)
 {
-    _linenums.erase(line);
-}
-
-bool Breakpoint::checkLine(int line)
-{
-    return (_linenums.find(line) != _linenums.end());
-}
-
-int Breakpoint::lineIndex(int ind)const
-{
-    int i = 0;
-    for (std::set<int>::const_iterator it = _linenums.begin(); it != _linenums.end(); ++it)
+    for (std::vector<BreakPointLine>::iterator it = _lines.begin();
+         it != _lines.end(); ++it)
     {
-        if (ind == i++)
-            return *it;
+        if (line == it->lineNr()) {
+            _lines.erase(it);
+            return;
+        }
     }
-    return -1;
+}
+
+bool Breakpoint::containsLine(int line)
+{
+    for (BreakPointLine bp : _lines) {
+        if (bp == line)
+            return true;
+    }
+
+    return false;
+}
+
+void Breakpoint::setDisable(int line, bool disable)
+{
+    for (BreakPointLine bp : _lines) {
+        if (bp == line)
+            bp.setDisabled(disable);
+    }
+}
+
+bool Breakpoint::disabled(int line)
+{
+    for (BreakPointLine bp : _lines) {
+        if (bp == line)
+            return bp.disabled();
+    }
+    return false;
+}
+
+BreakPointLine *Breakpoint::getBreakPointLine(int line)
+{
+    for (BreakPointLine &bp : _lines) {
+        if (bp == line)
+            return &bp;
+    }
+    return nullptr;
 }
 
 // -----------------------------------------------------
@@ -325,6 +481,8 @@ public:
     int depth;
 };
 
+// -----------------------------------------------------
+
 class RunningState
 {
 public:
@@ -333,7 +491,8 @@ public:
         Running,
         SingleStep,
         StepOver,
-        StepOut
+        StepOut,
+        HaltOnNext
     };
 
     RunningState(): state(Stopped) {  }
@@ -345,6 +504,8 @@ public:
 private:
     States state;
 };
+
+// -----------------------------------------------------
 
 struct PythonDebuggerP {
     PyObject* out_o;
@@ -388,6 +549,9 @@ struct PythonDebuggerP {
 };
 }
 
+// ---------------------------------------------------------------
+
+
 PythonDebugger::PythonDebugger()
   : d(new PythonDebuggerP(this))
 {
@@ -402,23 +566,67 @@ Breakpoint PythonDebugger::getBreakpoint(const QString& fn) const
 {
     for (std::vector<Breakpoint>::const_iterator it = d->bps.begin(); it != d->bps.end(); ++it) {
         if (fn == it->filename()) {
-            return *it;
+            return Breakpoint(*it);
         }
     }
 
     return Breakpoint();
 }
 
+BreakPointLine *PythonDebugger::getBreakpointLine(const QString fn, int line)
+{
+    for (Breakpoint bp : d->bps) {
+        if (fn == bp.filename())
+            return bp.getBreakPointLine(line);
+    }
+    return nullptr;
+}
+
+void PythonDebugger::setBreakpoint(const QString fn, int line)
+{
+    for (Breakpoint bp : d->bps) {
+        if (fn == bp.filename()) {
+            Breakpoint bp;
+            bp.setFilename(fn);
+            bp.addLine(line);
+            d->bps.push_back(bp);
+        }
+    }
+}
+
+void PythonDebugger::setBreakpoint(const QString fn, BreakPointLine bpl)
+{
+    for (Breakpoint bp : d->bps) {
+        if (fn == bp.filename()) {
+            Breakpoint bp;
+            bp.setFilename(fn);
+            bp.addLine(bpl);
+            d->bps.push_back(bp);
+        }
+    }
+}
+
+void PythonDebugger::setDisableBreakpoint(const QString fn, int line, bool disable)
+{
+    for (Breakpoint bp : d->bps) {
+        if (fn == bp.filename()) {
+            bp.setDisable(line, disable);
+        }
+    }
+}
+
+
+
 bool PythonDebugger::toggleBreakpoint(int line, const QString& fn)
 {
-    for (std::vector<Breakpoint>::iterator it = d->bps.begin(); it != d->bps.end(); ++it) {
-        if (fn == it->filename()) {
-            if (it->checkLine(line)) {
-                it->removeLine(line);
+    for (Breakpoint &bp : d->bps) {
+        if (fn == bp.filename()) {
+            if (bp.containsLine(line)) {
+                bp.removeLine(line);
                 return false;
             }
             else {
-                it->addLine(line);
+                bp.addLine(line);
                 return true;
             }
         }
@@ -434,7 +642,8 @@ bool PythonDebugger::toggleBreakpoint(int line, const QString& fn)
 void PythonDebugger::runFile(const QString& fn)
 {
     try {
-        d->state = RunningState::Running;
+        if (d->state != RunningState::HaltOnNext)
+            d->state = RunningState::Running;
         QByteArray pxFileName = fn.toUtf8();
 #ifdef FC_OS_WIN32
         Base::FileInfo fi((const char*)pxFileName);
@@ -534,6 +743,11 @@ void PythonDebugger::tryStop()
     signalNextStep();
 }
 
+void PythonDebugger::haltOnNext()
+{
+    d->state = RunningState::HaltOnNext;
+}
+
 void PythonDebugger::stepOver()
 {
     d->state = RunningState::StepOver;
@@ -600,6 +814,7 @@ void PythonDebugger::hideDebugMarker(const QString& fn)
 // http://code.google.com/p/idapython/source/browse/trunk/python.cpp
 // http://www.koders.com/cpp/fid191F7B13CF73133935A7A2E18B7BF43ACC6D1784.aspx?s=PyEval_SetTrace
 // http://stuff.mit.edu/afs/sipb/project/python/src/python2.2-2.2.2/Modules/_hotshot.c
+// static
 int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int what, PyObject * /*arg*/)
 {
     PythonDebuggerPy* self = static_cast<PythonDebuggerPy*>(obj);
@@ -632,7 +847,9 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
 
             int line = PyCode_Addr2Line(frame->f_code, frame->f_lasti);
             bool halt = false;
-            if (dbg->d->state == RunningState::SingleStep) {
+            if (dbg->d->state == RunningState::SingleStep ||
+                dbg->d->state == RunningState::HaltOnNext)
+            {
                 halt = true;
             } else if(dbg->d->state == RunningState::StepOver &&
                       dbg->d->maxHaltLevel >= self->depth)
@@ -643,9 +860,15 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
             {
                 halt = true;
             } else { // RunningState
-                Breakpoint bp = dbg->getBreakpoint(file);
-                if (bp.checkLine(line))
-                    halt = true;
+                BreakPointLine *bp = dbg->getBreakpointLine(file, line);
+                if (bp != nullptr) {
+                    if (bp->hit()) {
+                        halt = true;
+                    } else if(!bp->condition().size()) {
+                        halt = PythonDebugger::evalCondition(bp->condition().toLatin1(),
+                                                             frame);
+                    }
+                }
             }
 
             if (halt) {
@@ -693,6 +916,44 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
         break;
     }
     return 0;
+}
+
+// credit to: https://github.com/jondy/pyddd/blob/master/ipa.c
+// static
+bool PythonDebugger::evalCondition(const char *condition, PyFrameObject *frame)
+{
+    /* Eval breakpoint condition */
+    PyObject *result;
+
+    /* Use empty filename to avoid obj added to object entry table */
+    PyObject* exprobj = Py_CompileStringFlags(condition, "", Py_eval_input, NULL);
+    if (!exprobj) {
+        PyErr_Clear();
+        return false;
+    }
+
+    /* Clear flag use_tracing in current PyThreadState to avoid
+         tracing evaluation self
+      */
+    frame->f_tstate->use_tracing = 0;
+    result = PyEval_EvalCode((PyCodeObject*)exprobj,
+                             frame->f_globals,
+                             frame->f_locals);
+    frame->f_tstate->use_tracing = 1;
+    Py_DecRef(exprobj);
+
+    if (result == NULL) {
+        PyErr_Clear();
+        return false;
+    }
+
+    if (PyObject_IsTrue(result) != 1) {
+        Py_DecRef(result);
+        return false;
+    }
+    Py_DecRef(result);
+
+    return true;
 }
 
 #include "moc_PythonDebugger.cpp"
