@@ -569,9 +569,9 @@ MenuItem* StdWorkbench::setupMenuBar() const
     macro->setCommand("&Macro");
     *macro << "Std_DlgMacroRecord" << "Std_MacroStopRecord" << "Std_DlgMacroExecute"
            << "Separator" << "Std_DlgMacroExecuteDirect" << "Std_MacroStartDebug"
-           << "Std_MacroStopDebug" << "Std_MacroStepOver" << "Std_MacroStepInto"
-           << "Std_MacroStepOut" << "Std_ToggleBreakpoint"
-           << "Separator" << "Std_ShowFindBar";
+           << "Std_MacroStopDebug" << "Separator" << "Std_MacroHaltOnNext"
+           << "Std_MacroStepOver" << "Std_MacroStepInto" << "Std_MacroStepOut"
+           << "Std_ToggleBreakpoint" << "Separator" << "Std_ShowFindBar";
 
     // Windows
     MenuItem* wnd = new MenuItem( menuBar );

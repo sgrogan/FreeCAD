@@ -225,11 +225,38 @@ StdCmdMacroStepOver::StdCmdMacroStepOver()
 
 void StdCmdMacroStepOver::activated(int iMsg)
 {
-    Q_UNUSED(iMsg); 
+    Q_UNUSED(iMsg);
     Application::Instance->macroManager()->debugger()->stepOver();
 }
 
 bool StdCmdMacroStepOver::isActive(void)
+{
+    static PythonDebugger* dbg = Application::Instance->macroManager()->debugger();
+    return dbg->isRunning();
+}
+
+DEF_STD_CMD_A(StdCmdMacroHaltOnNext);
+
+StdCmdMacroHaltOnNext::StdCmdMacroHaltOnNext()
+  : Command("Std_MacroHaltOnNext")
+{
+    sGroup        = QT_TR_NOOP("Macro");
+    sMenuText     = QT_TR_NOOP("Halt on next");
+    sToolTipText  = QT_TR_NOOP("Halt on next");
+    sWhatsThis    = "Std_MacroHaltOnNext";
+    sStatusTip    = QT_TR_NOOP("Halt on next");
+    sPixmap       = 0;
+    sAccel        = "F8";
+    eType         = 0;
+}
+
+void StdCmdMacroHaltOnNext::activated(int iMsg)
+{
+    Q_UNUSED(iMsg); 
+    Application::Instance->macroManager()->debugger()->haltOnNext();
+}
+
+bool StdCmdMacroHaltOnNext::isActive(void)
 {
     static PythonDebugger* dbg = Application::Instance->macroManager()->debugger();
     return dbg->isRunning();
@@ -353,6 +380,7 @@ void CreateMacroCommands(void)
     rcCmdMgr.addCommand(new StdCmdDlgMacroExecuteDirect());
     rcCmdMgr.addCommand(new StdCmdMacroStartDebug());
     rcCmdMgr.addCommand(new StdCmdMacroStopDebug());
+    rcCmdMgr.addCommand(new StdCmdMacroHaltOnNext());
     rcCmdMgr.addCommand(new StdCmdMacroStepOver());
     rcCmdMgr.addCommand(new StdCmdMacroStepInto());
     rcCmdMgr.addCommand(new StdCmdMacroStepOut());
