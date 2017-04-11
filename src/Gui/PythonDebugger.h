@@ -170,6 +170,7 @@ public:
     void tryStop();
     void stepOver();
     void stepInto();
+    void stepOut();
     void stepRun();
     void showDebugMarker(const QString&, int line);
     void hideDebugMarker(const QString&);

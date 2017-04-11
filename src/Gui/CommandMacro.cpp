@@ -262,6 +262,33 @@ bool StdCmdMacroStepInto::isActive(void)
     return dbg->isRunning();
 }
 
+DEF_STD_CMD_A(StdCmdMacroStepOut);
+
+StdCmdMacroStepOut::StdCmdMacroStepOut()
+  : Command("Std_MacroStepOut")
+{
+    sGroup        = QT_TR_NOOP("Macro");
+    sMenuText     = QT_TR_NOOP("Step out");
+    sToolTipText  = QT_TR_NOOP("Step out");
+    //sWhatsThis    = "Std_MacroStepOut";
+    sStatusTip    = QT_TR_NOOP("Step out");
+    sPixmap       = 0;
+    sAccel        = "F12";
+    eType         = 0;
+}
+
+void StdCmdMacroStepOut::activated(int iMsg)
+{
+    Q_UNUSED(iMsg);
+    Application::Instance->macroManager()->debugger()->stepOut();
+}
+
+bool StdCmdMacroStepOut::isActive(void)
+{
+    static PythonDebugger* dbg = Application::Instance->macroManager()->debugger();
+    return dbg->isRunning();
+}
+
 DEF_STD_CMD_A(StdCmdToggleBreakpoint);
 
 StdCmdToggleBreakpoint::StdCmdToggleBreakpoint()
@@ -328,6 +355,7 @@ void CreateMacroCommands(void)
     rcCmdMgr.addCommand(new StdCmdMacroStopDebug());
     rcCmdMgr.addCommand(new StdCmdMacroStepOver());
     rcCmdMgr.addCommand(new StdCmdMacroStepInto());
+    rcCmdMgr.addCommand(new StdCmdMacroStepOut());
     rcCmdMgr.addCommand(new StdCmdToggleBreakpoint());
     rcCmdMgr.addCommand(new StdCmdShowSearchBar());
 }

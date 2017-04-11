@@ -328,12 +328,22 @@ public:
 class RunningState
 {
 public:
-    RunningState(bool& s) : state(s)
-    { state = true; }
-    ~RunningState()
-    { state = false; }
+    enum States {
+        Stopped,
+        Running,
+        SingleStep,
+        StepOver,
+        StepOut
+    };
+
+    RunningState(): state(Stopped) {  }
+    ~RunningState() {  }
+    States operator= (States s) { state = s; return state; }
+    bool operator!= (States s) { return state != s; }
+    bool operator== (States s) { return state == s; }
+
 private:
-    bool& state;
+    States state;
 };
 
 struct PythonDebuggerP {
@@ -344,13 +354,16 @@ struct PythonDebuggerP {
     PyObject* err_n;
     PyObject* exc_n;
     PythonDebugExcept* pypde;
-    bool init, trystop, running;
+    RunningState state;
+    bool init, trystop;
+    int maxHaltLevel;
     QEventLoop loop;
     PyObject* pydbg;
     std::vector<Breakpoint> bps;
 
     PythonDebuggerP(PythonDebugger* that) :
-        init(false), trystop(false), running(false)
+        init(false), trystop(false),
+        maxHaltLevel(-1)
     {
         out_o = 0;
         err_o = 0;
@@ -421,7 +434,7 @@ bool PythonDebugger::toggleBreakpoint(int line, const QString& fn)
 void PythonDebugger::runFile(const QString& fn)
 {
     try {
-        RunningState state(d->running);
+        d->state = RunningState::Running;
         QByteArray pxFileName = fn.toUtf8();
 #ifdef FC_OS_WIN32
         Base::FileInfo fi((const char*)pxFileName);
@@ -429,7 +442,10 @@ void PythonDebugger::runFile(const QString& fn)
 #else
         FILE *fp = fopen((const char*)pxFileName,"r");
 #endif
-        if (!fp) return;
+        if (!fp) {
+            d->state = RunningState::Stopped;
+            return;
+        }
 
         Base::PyGILStateLocker locker;
         PyObject *module, *dict;
@@ -444,11 +460,13 @@ void PythonDebugger::runFile(const QString& fn)
 #endif
             if (f == NULL) {
                 fclose(fp);
+                d->state = RunningState::Stopped;
                 return;
             }
             if (PyDict_SetItemString(dict, "__file__", f) < 0) {
                 Py_DECREF(f);
                 fclose(fp);
+                d->state = RunningState::Stopped;
                 return;
             }
             Py_DECREF(f);
@@ -469,11 +487,13 @@ void PythonDebugger::runFile(const QString& fn)
     catch (...) {
         Base::Console().Warning("Unknown exception thrown during macro debugging\n");
     }
+
+    d->state = RunningState::Stopped;
 }
 
 bool PythonDebugger::isRunning() const
 {
-    return d->running;
+    return d->state != RunningState::Stopped;
 }
 
 bool PythonDebugger::start()
@@ -516,16 +536,27 @@ void PythonDebugger::tryStop()
 
 void PythonDebugger::stepOver()
 {
+    d->state = RunningState::StepOver;
+    d->maxHaltLevel = static_cast<PythonDebuggerPy*>(d->pydbg)->depth;
     signalNextStep();
 }
 
 void PythonDebugger::stepInto()
 {
+    d->state = RunningState::SingleStep;
+    signalNextStep();
+}
+
+void PythonDebugger::stepOut()
+{
+    d->state = RunningState::StepOut;
+    d->maxHaltLevel = static_cast<PythonDebuggerPy*>(d->pydbg)->depth;
     signalNextStep();
 }
 
 void PythonDebugger::stepRun()
 {
+    d->state = RunningState::Running;
     signalNextStep();
 }
 
@@ -573,8 +604,11 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
 {
     PythonDebuggerPy* self = static_cast<PythonDebuggerPy*>(obj);
     PythonDebugger* dbg = self->dbg;
-    if (dbg->d->trystop)
+    if (dbg->d->trystop) {
         PyErr_SetInterrupt();
+        dbg->d->state = RunningState::Stopped;
+        return 0;
+    }
     QCoreApplication::processEvents();
     //int no;
 
@@ -595,26 +629,56 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
         return 0;
     case PyTrace_LINE:
         {
-            //PyObject *str;
-            //str = PyObject_Str(frame->f_code->co_filename);
-            //no = frame->f_lineno;
+
             int line = PyCode_Addr2Line(frame->f_code, frame->f_lasti);
-            //if (str) {
-            //    Base::Console().Message("PROFILING: %s:%d\n", PyString_AsString(str), frame->f_lineno);
-            //    Py_DECREF(str);
-            //}
-    // For testing only
-            if (!dbg->d->trystop) {
+            bool halt = false;
+            if (dbg->d->state == RunningState::SingleStep) {
+                halt = true;
+            } else if(dbg->d->state == RunningState::StepOver &&
+                      dbg->d->maxHaltLevel >= self->depth)
+            {
+                halt = true;
+            } else if(dbg->d->state == RunningState::StepOut &&
+                     dbg->d->maxHaltLevel > self->depth)
+            {
+                halt = true;
+            } else { // RunningState
                 Breakpoint bp = dbg->getBreakpoint(file);
-                if (bp.checkLine(line)) {
-                    dbg->showDebugMarker(file, line);
-                    QEventLoop loop;
-                    QObject::connect(dbg, SIGNAL(signalNextStep()), &loop, SLOT(quit()));
-                    loop.exec();
-                    dbg->hideDebugMarker(file);
-                }
+                if (bp.checkLine(line))
+                    halt = true;
             }
+
+            if (halt) {
+                dbg->showDebugMarker(file, line);
+                QEventLoop loop;
+                QObject::connect(dbg, SIGNAL(signalNextStep()), &loop, SLOT(quit()));
+                loop.exec();
+                dbg->hideDebugMarker(file);
+            }
+
             return 0;
+
+
+//            //PyObject *str;
+//            //str = PyObject_Str(frame->f_code->co_filename);
+//            //no = frame->f_lineno;
+//            int line = PyCode_Addr2Line(frame->f_code, frame->f_lasti);
+//            //if (str) {
+//            //    Base::Console().Message("PROFILING: %s:%d\n", PyString_AsString(str), frame->f_lineno);
+//            //    Py_DECREF(str);
+//            //}
+//    // For testing only
+//            if (!dbg->d->trystop) {
+//                Breakpoint bp = dbg->getBreakpoint(file);
+//                if (bp.checkLine(line)) {
+//                    dbg->showDebugMarker(file, line);
+//                    QEventLoop loop;
+//                    QObject::connect(dbg, SIGNAL(signalNextStep()), &loop, SLOT(quit()));
+//                    loop.exec();
+//                    dbg->hideDebugMarker(file);
+//                }
+//            }
+//            return 0;
         }
     case PyTrace_EXCEPTION:
         return 0;
