@@ -97,6 +97,7 @@
 #include "MenuManager.h"
 //#include "ToolBox.h"
 #include "ReportView.h"
+#include "PythonDebuggerView.h"
 #include "CombiView.h"
 #include "PythonConsole.h"
 #include "TaskView/TaskView.h"
@@ -417,6 +418,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f)
     }
 #endif
 #endif
+
+//    // PythonDebugger view
+    Gui::DockWnd::PythonDebuggerView* pcDebugger = new PythonDebuggerView(this);
+    pcDebugger->setObjectName
+        (QString::fromLatin1(QT_TRANSLATE_NOOP("QDockWidget","Debugger view")));
+    pDockMgr->registerDockWindow("Std_PythonDebuggerView", pcDebugger);
 
     // accept drops on the window, get handled in dropEvent, dragEnterEvent
     setAcceptDrops(true);

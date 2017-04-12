@@ -656,6 +656,7 @@ DockWindowItems* StdWorkbench::setupDockWindows() const
     root->addDockWidget("Std_CombiView", Qt::LeftDockWidgetArea, false, false);
     root->addDockWidget("Std_ReportView", Qt::BottomDockWidgetArea, true, true);
     root->addDockWidget("Std_PythonView", Qt::BottomDockWidgetArea, true, true);
+    root->addDockWidget("Std_PythonDebuggerView", Qt::RightDockWidgetArea, true, true);
     
     //Dagview through parameter.
     ParameterGrp::handle group = App::GetApplication().GetUserParameter().
@@ -786,6 +787,7 @@ DockWindowItems* NoneWorkbench::setupDockWindows() const
 {
     DockWindowItems* root = new DockWindowItems();
     root->addDockWidget("Std_ReportView", Qt::BottomDockWidgetArea, true, false);
+    root->addDockWidget("Std_DebuggerView", Qt::RightDockWidgetArea, true, false);
     return root;
 }
 
