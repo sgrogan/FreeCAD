@@ -75,6 +75,7 @@ private:
     CompletionList *listBox;
 };
 
+class LineMarkerArea;
 class SyntaxHighlighter;
 class GuiExport TextEditor : public TextEdit, public WindowParameter
 {
@@ -87,7 +88,7 @@ public:
 
     void OnChange(Base::Subject<const char*> &rCaller,const char* rcReason);
 
-    void lineNumberAreaPaintEvent(QPaintEvent* );
+    //void lineNumberAreaPaintEvent(QPaintEvent* );
     int lineNumberAreaWidth();
     int findAndHighlight(const QString needle);
 
@@ -101,30 +102,39 @@ protected:
     /** Draw a beam in the line where the cursor is. */
     void paintEvent (QPaintEvent * e);
     void resizeEvent(QResizeEvent* e);
-    QWidget* getMarker() const
+    LineMarkerArea* getMarkerArea() const
     { return lineNumberArea; }
     virtual void drawMarker(int line, int x, int y, QPainter*);
 
 private:
     SyntaxHighlighter* highlighter;
-    QWidget* lineNumberArea;
+    LineMarkerArea* lineNumberArea;
     struct TextEditorP* d;
 
     friend class SyntaxHighlighter;
+    friend class LineMarkerArea;
 };
 
-class LineMarker : public QWidget
+
+class LineMarkerArea : public QWidget
 {
     Q_OBJECT
 
 public:
-    LineMarker(TextEditor* editor);
-    virtual ~LineMarker();
+    LineMarkerArea(TextEditor* editor);
+    virtual ~LineMarkerArea();
 
     QSize sizeHint() const;
 
+Q_SIGNALS:
+    void clickedOnLine(int line, QMouseEvent *event);
+    void contextMenuOnLine(int line, QContextMenuEvent * event);
+
 protected:
-    void paintEvent (QPaintEvent *);
+    void paintEvent (QPaintEvent *event);
+    void mouseReleaseEvent(QMouseEvent * event);
+    void wheelEvent(QWheelEvent * event);
+    void contextMenuEvent(QContextMenuEvent * event);
 
 private:
     TextEditor *textEditor;

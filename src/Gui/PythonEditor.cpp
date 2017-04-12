@@ -47,6 +47,11 @@
 #include <Base/Parameter.h>
 #include <QRegExp>
 #include <QDebug>
+#include <QLabel>
+#include <QSpinBox>
+#include <QLineEdit>
+#include <QCheckBox>
+#include <QToolTip>
 
 using namespace Gui;
 
@@ -56,6 +61,7 @@ struct PythonEditorP
     int   debugLine;
     QRect debugRect;
     QPixmap breakpoint;
+    QPixmap breakpointDisabled;
     QPixmap debugMarker;
     QString filename;
     PythonDebugger* debugger;
@@ -64,6 +70,7 @@ struct PythonEditorP
     PythonEditorP()
         : debugLine(-1),
           breakpoint(BitmapFactory().iconFromTheme("breakpoint").pixmap(16,16)),
+          breakpointDisabled(BitmapFactory().iconFromTheme("breakpoint-disabled").pixmap(16,16)),
           debugMarker(BitmapFactory().iconFromTheme("debug-marker").pixmap(16,16)),
           callTipsList(0)
     {
@@ -72,6 +79,8 @@ struct PythonEditorP
 };
 
 } // namespace Gui
+
+
 
 /* TRANSLATOR Gui::PythonEditor */
 
@@ -104,10 +113,16 @@ PythonEditor::PythonEditor(QWidget* parent)
     connect(autoIndent, SIGNAL(activated()),
             this, SLOT(onAutoIndent()));
 
+    connect(getMarkerArea(), SIGNAL(clickedOnLine(int,QMouseEvent*)),
+            this, SLOT(markerAreaClicked(int,QMouseEvent*)));
+
+    connect(getMarkerArea(), SIGNAL(contextMenuOnLine(int,QContextMenuEvent*)),
+            this, SLOT(markerAreaContextMenu(int,QContextMenuEvent*)));
+
     d->matchingChars = new PythonMatchingChars(this);
 
     // create the window for call tips
-    d->callTipsList = new CallTipsList(this); //, QLatin1String("__scriptcompletion__"));
+    d->callTipsList = new CallTipsList(this);
     d->callTipsList->setFrameStyle(QFrame::Box|QFrame::Raised);
     d->callTipsList->setLineWidth(2);
     installEventFilter(d->callTipsList);
@@ -164,13 +179,13 @@ void PythonEditor::toggleBreakpoint()
     QTextCursor cursor = textCursor();
     int line = cursor.blockNumber() + 1;
     d->debugger->toggleBreakpoint(line, d->filename);
-    getMarker()->update();
+    getMarkerArea()->update();
 }
 
 void PythonEditor::showDebugMarker(int line)
 {
     d->debugLine = line;
-    getMarker()->update();
+    getMarkerArea()->update();
     QTextCursor cursor = textCursor();
     cursor.movePosition(QTextCursor::StartOfBlock);
     int cur = cursor.blockNumber() + 1;
@@ -188,14 +203,17 @@ void PythonEditor::showDebugMarker(int line)
 void PythonEditor::hideDebugMarker()
 {
     d->debugLine = -1;
-    getMarker()->update();
+    getMarkerArea()->update();
 }
 
 void PythonEditor::drawMarker(int line, int x, int y, QPainter* p)
 {
-    Breakpoint bp = d->debugger->getBreakpoint(d->filename);
-    if (bp.containsLine(line)) {
-        p->drawPixmap(x, y, d->breakpoint);
+    BreakpointLine *bpl = d->debugger->getBreakpointLine(d->filename, line);
+    if (bpl != nullptr) {
+        if (bpl->disabled())
+            p->drawPixmap(x, y, d->breakpointDisabled);
+        else
+            p->drawPixmap(x, y, d->breakpoint);
     }
     if (d->debugLine == line) {
         p->drawPixmap(x, y+2, d->debugMarker);
@@ -383,6 +401,82 @@ void PythonEditor::keyPressEvent(QKeyEvent * e)
     { d->callTipsList->validateCursor(); }
 }
 
+bool PythonEditor::event(QEvent *event)
+{
+    if (event->type() == QEvent::ToolTip)
+    {
+        QHelpEvent* helpEvent = static_cast<QHelpEvent*>(event);
+        QPoint point = helpEvent->pos();
+        point.rx() += lineNumberAreaWidth();
+        QTextCursor cursor = cursorForPosition(point);
+        cursor.select(QTextCursor::WordUnderCursor);
+        if (!cursor.selectedText().isEmpty()) {
+            QToolTip::showText(helpEvent->globalPos(), cursor.selectedText());
+        } else {
+            QToolTip::hideText();
+        }
+        return true;
+    }
+    return TextEditor::event(event);
+}
+
+//void PythonEditor::markerAreaClicked(int line, QMouseEvent *event)
+//{
+//    BreakpointLine *bpl = d->debugger->getBreakpointLine(d->filename, line);
+//    if (bpl != nullptr) {
+//        if (event->button() ==  Qt::RightButton) {
+//            bpl->setDisabled(!bpl->disabled());
+//        } else {
+//            d->debugger->deleteBreakpoint(d->filename, line);
+//        }
+//    } else {
+//        d->debugger->setBreakpoint(d->filename, line);
+//    }
+//    getMarkerArea()->repaint();
+//}
+
+void PythonEditor::markerAreaContextMenu(int line, QContextMenuEvent *event)
+{
+    QMenu menu;
+    BreakpointLine *bpl = d->debugger->getBreakpointLine(d->filename, line);
+    if (bpl != nullptr) {
+        QAction disable(tr("Disable breakpoint"), this);
+        QAction enable(tr("Enable breakpoint"), this);
+        QAction edit(tr("Edit breakpoint"), this);
+        QAction del(tr("Delete breakpoint"), this);
+
+        if (bpl->disabled())
+            menu.addAction(&enable);
+        else
+            menu.addAction(&disable);
+        menu.addAction(&edit);
+        menu.addAction(&del);
+
+        QAction *res = menu.exec(event->globalPos());
+        if (res == &disable) {
+            bpl->setDisabled(true);
+        } else if(res == &enable) {
+            bpl->setDisabled(false);
+        } else if (res == &edit) {
+            PythonEditorBreakpointDlg dlg(this, d->debugger, d->filename, line);
+            dlg.exec();
+        } else if (res == &del) {
+            d->debugger->deleteBreakpoint(d->filename, line);
+        }
+
+    } else {
+        QAction create(tr("Add breakpoint"), this);
+        menu.addAction(&create);
+        QAction *res = menu.exec(event->globalPos());
+        if (res == &create) {
+            d->debugger->setBreakpoint(d->filename, line);
+        }
+    }
+
+    getMarkerArea()->repaint();
+    event->accept();
+}
+
 
 void PythonEditor::onComment()
 {
@@ -529,6 +623,79 @@ void PythonEditor::onAutoIndent()
         }
     }
     cursor.endEditBlock();
+}
+
+// ------------------------------------------------------------------------
+
+PythonEditorBreakpointDlg::PythonEditorBreakpointDlg(QWidget *parent, PythonDebugger *deb,
+                                                      const QString fn, int line):
+    QDialog(parent), m_filename(fn), m_line(line), m_dbg(deb)
+{
+    QLabel *lblMsg   = new QLabel(this);
+    QLabel *lblEnable = new QLabel(this);
+    m_enabled        = new QCheckBox(this);
+    m_ignoreFromHits = new QSpinBox(this);
+    m_ignoreToHits   = new QSpinBox(this);
+    m_condition      = new QLineEdit(this);
+    QLabel *ignoreToLbl   = new QLabel(this);
+    QLabel *ignoreFromLbl = new QLabel(this);
+    QLabel *conditionLbl   = new QLabel(this);
+    QGridLayout *layout    = new QGridLayout;
+    QFrame *separator      = new QFrame();
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok |
+                                                       QDialogButtonBox::Cancel);
+    connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
+    connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+
+
+    lblMsg->setText(tr("Breakpoint on line: %1").arg(line));
+    lblEnable->setText(tr("Enable breakpoint"));
+    ignoreFromLbl->setText(tr("Ignore after hits"));
+    ignoreFromLbl->setToolTip(tr("0 = Disabled"));
+    m_ignoreFromHits->setToolTip(ignoreFromLbl->toolTip());
+    ignoreToLbl->setText(tr("Ignore hits up to"));
+    conditionLbl->setText(tr("Condition"));
+    conditionLbl->setToolTip(tr("Python code that evaluates to true triggers breakpoint"));
+    m_condition->setToolTip(conditionLbl->toolTip());
+
+    layout->addWidget(lblMsg, 0, 0, 1, 2);
+    layout->addWidget(separator, 1, 0, 1, 2);
+    layout->addWidget(lblEnable, 2, 0);
+    layout->addWidget(m_enabled, 2, 1);
+    layout->addWidget(conditionLbl, 3, 0, 1, 2);
+    layout->addWidget(m_condition, 4, 0, 1, 2);
+    layout->addWidget(ignoreToLbl, 5, 0);
+    layout->addWidget(m_ignoreToHits, 5, 1);
+    layout->addWidget(ignoreFromLbl, 6, 0);
+    layout->addWidget(m_ignoreFromHits, 6, 1);
+    layout->addWidget(buttonBox, 7, 0, 1, 2);
+    setLayout(layout);
+
+    BreakpointLine *bpl = m_dbg->getBreakpointLine(m_filename, line);
+    if (bpl != nullptr) {
+        m_enabled->setChecked(!bpl->disabled());
+        m_ignoreFromHits->setValue(bpl->ignoreFrom());
+        m_ignoreToHits->setValue(bpl->ignoreTo());
+        m_condition->setText(bpl->condition());
+    }
+}
+
+PythonEditorBreakpointDlg::~PythonEditorBreakpointDlg()
+{
+}
+
+void PythonEditorBreakpointDlg::accept()
+{
+    BreakpointLine *bpl = m_dbg->getBreakpointLine(m_filename, m_line);
+    if (bpl != nullptr) {
+        bpl->setDisabled(!m_enabled->isChecked());
+        bpl->setCondition(m_condition->text());
+        bpl->setIgnoreTo(m_ignoreToHits->value());
+        bpl->setIgnoreFrom(m_ignoreFromHits->value());
+    }
+
+    QDialog::accept();
 }
 
 // ------------------------------------------------------------------------

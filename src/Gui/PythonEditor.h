@@ -27,11 +27,20 @@
 #include "Window.h"
 #include "TextEdit.h"
 #include "SyntaxHighlighter.h"
+#include <QDialog>
+
+
+QT_BEGIN_NAMESPACE
+class QSpinBox;
+class QLineEdit;
+class QCheckBox;
+QT_END_NAMESPACE
 
 namespace Gui {
 
 class PythonSyntaxHighlighter;
 class PythonSyntaxHighlighterP;
+class PythonEditorBreakpointDlg;
 
 /**
  * Python text editor with syntax highlighting.
@@ -65,7 +74,7 @@ public Q_SLOTS:
      */
     void onUncomment();
     /**
-     * @brief onIndent
+     * @brief onAutoIndent
      * Indents selected codeblock
      */
     void onAutoIndent();
@@ -79,12 +88,40 @@ protected:
     void contextMenuEvent ( QContextMenuEvent* e );
     void drawMarker(int line, int x, int y, QPainter*);
     void keyPressEvent(QKeyEvent * e);
-    //QTextCursor inputBegin( void ) const;
+    bool event(QEvent *event);
+
+private Q_SLOTS:
+    void markerAreaContextMenu(int line, QContextMenuEvent *event);
 
 private:
     //PythonSyntaxHighlighter* pythonSyntax;
     struct PythonEditorP* d;
 };
+
+// ---------------------------------------------------------------
+
+class PythonDebugger;
+class PythonEditorBreakpointDlg : public QDialog
+{
+    Q_OBJECT
+public:
+    PythonEditorBreakpointDlg(QWidget *parent, PythonDebugger *deb,
+                              const QString fn, int line);
+    ~PythonEditorBreakpointDlg();
+protected:
+    void accept();
+ private:
+    QString         m_filename;
+    int             m_line;
+    PythonDebugger  *m_dbg;
+
+    QSpinBox  *m_ignoreToHits;
+    QSpinBox  *m_ignoreFromHits;
+    QLineEdit *m_condition;
+    QCheckBox *m_enabled;
+};
+
+// --------------------------------------------------------------------
 
 /**
  * Syntax highlighter for Python.
@@ -167,5 +204,6 @@ private:
 };
 
 } // namespace Gui
+
 
 #endif // GUI_PYTHONEDITOR_H

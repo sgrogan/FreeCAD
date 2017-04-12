@@ -32,6 +32,7 @@
 
 #include "TextEdit.h"
 #include "SyntaxHighlighter.h"
+#include <QScrollBar>
 
 using namespace Gui;
 
@@ -227,10 +228,11 @@ TextEditor::TextEditor(QWidget* parent)
   : TextEdit(parent), WindowParameter("Editor"), highlighter(0)
 {
     d = new TextEditorP();
-    lineNumberArea = new LineMarker(this);
+    lineNumberArea = new LineMarkerArea(this);
 
     QFont serifFont(QLatin1String("Courier"), 10, QFont::Normal);
     setFont(serifFont);
+    lineNumberArea->setFont(serifFont);
 
     ParameterGrp::handle hPrefGrp = getWindowParameter();
     // set default to 4 characters
@@ -344,33 +346,33 @@ void TextEditor::drawMarker(int line, int x, int y, QPainter* p)
     Q_UNUSED(p); 
 }
 
-void TextEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
-{
-    QPainter painter(lineNumberArea);
-    //painter.fillRect(event->rect(), Qt::lightGray);
+//void TextEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
+//{
+//    QPainter painter(lineNumberArea);
+//    //painter.fillRect(event->rect(), Qt::lightGray);
 
-    QTextBlock block = firstVisibleBlock();
-    int blockNumber = block.blockNumber();
-    int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
-    int bottom = top + (int) blockBoundingRect(block).height();
+//    QTextBlock block = firstVisibleBlock();
+//    int blockNumber = block.blockNumber();
+//    int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
+//    int bottom = top + (int) blockBoundingRect(block).height();
 
-    while (block.isValid() && top <= event->rect().bottom()) {
-        if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            QPalette pal = palette();
-            QColor color = pal.windowText().color();
-            painter.setPen(color);
-            painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(),
-                             Qt::AlignRight, number);
-            drawMarker(blockNumber + 1, 1, top, &painter);
-        }
+//    while (block.isValid() && top <= event->rect().bottom()) {
+//        if (block.isVisible() && bottom >= event->rect().top()) {
+//            QString number = QString::number(blockNumber + 1);
+//            QPalette pal = palette();
+//            QColor color = pal.windowText().color();
+//            painter.setPen(color);
+//            painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(),
+//                             Qt::AlignRight, number);
+//            drawMarker(blockNumber + 1, 1, top, &painter);
+//        }
 
-        block = block.next();
-        top = bottom;
-        bottom = top + (int) blockBoundingRect(block).height();
-        ++blockNumber;
-    }
-}
+//        block = block.next();
+//        top = bottom;
+//        bottom = top + (int) blockBoundingRect(block).height();
+//        ++blockNumber;
+//    }
+//}
 
 void TextEditor::setSyntaxHighlighter(SyntaxHighlighter* sh)
 {
@@ -494,6 +496,7 @@ void TextEditor::OnChange(Base::Subject<const char*> &rCaller,const char* sReaso
         
         QFont font(fontFamily, fontSize);
         setFont(font);
+        lineNumberArea->setFont(font);
     } else {
         QMap<QString, QColor>::ConstIterator it = d->colormap.find(QString::fromLatin1(sReason));
         if (it != d->colormap.end()) {
@@ -530,23 +533,82 @@ void TextEditor::paintEvent (QPaintEvent * e)
 
 // ------------------------------------------------------------------------------
 
-LineMarker::LineMarker(TextEditor* editor)
+LineMarkerArea::LineMarkerArea(TextEditor* editor)
     : QWidget(editor), textEditor(editor)
 {
 }
 
-LineMarker::~LineMarker()
+LineMarkerArea::~LineMarkerArea()
 {
 }
 
-QSize LineMarker::sizeHint() const
+QSize LineMarkerArea::sizeHint() const
 {
     return QSize(textEditor->lineNumberAreaWidth(), 0);
 }
 
-void LineMarker::paintEvent(QPaintEvent* e)
+void LineMarkerArea::paintEvent(QPaintEvent* event)
 {
-    textEditor->lineNumberAreaPaintEvent(e);
+    //textEditor->lineNumberAreaPaintEvent(e);
+    QPainter painter(this);
+    //painter.fillRect(event->rect(), Qt::lightGray);
+
+    QTextBlock block = textEditor->firstVisibleBlock();
+    int curBlockNr = textEditor->textCursor().block().blockNumber();
+    int blockNumber = block.blockNumber();
+    int top = (int) textEditor->blockBoundingGeometry(block).translated(
+                                    textEditor->contentOffset()).top();
+    int bottom = top + (int) textEditor->blockBoundingRect(block).height();
+
+    while (block.isValid() && top <= event->rect().bottom()) {
+        if (block.isVisible() && bottom >= event->rect().top()) {
+            QString number = QString::number(blockNumber + 1);
+            QPalette pal = palette();
+            QFont font = textEditor->font();
+            QColor color = pal.buttonText().color();
+            if (blockNumber == curBlockNr) {
+                color = pal.text().color();
+                font.setWeight(QFont::Bold);
+            }
+            painter.setFont(font);
+            painter.setPen(color);
+            painter.drawText(0, top, width(), fontMetrics().height(),
+                             Qt::AlignRight, number);
+            textEditor->drawMarker(blockNumber + 1, 1, top, &painter);
+        }
+
+        block = block.next();
+        top = bottom;
+        bottom = top + (int) textEditor->blockBoundingRect(block).height();
+        ++blockNumber;
+    }
+}
+
+void LineMarkerArea::mouseReleaseEvent(QMouseEvent *event)
+{
+    QTextBlock block = textEditor->firstVisibleBlock();
+    QRectF rowSize = textEditor->blockBoundingGeometry(block);
+    if (rowSize.height() > 0) {
+        int line = ((event->y()) / rowSize.height()) + block.blockNumber() + 1;
+        Q_EMIT clickedOnLine(line, event);
+    }
+}
+
+void LineMarkerArea::wheelEvent(QWheelEvent *event)
+{
+    event->ignore();
+    textEditor->wheelEvent(event);
+}
+
+void LineMarkerArea::contextMenuEvent(QContextMenuEvent *event)
+{
+    QTextBlock block = textEditor->firstVisibleBlock();
+    QRectF rowSize = textEditor->blockBoundingGeometry(block);
+    if (rowSize.height() > 0) {
+        int line = ((event->y()) / rowSize.height()) + block.blockNumber() + 1;
+        Q_EMIT contextMenuOnLine(line, event);
+    }
+
 }
 
 // ------------------------------------------------------------------------------
