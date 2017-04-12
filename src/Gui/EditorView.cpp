@@ -135,9 +135,10 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
     connect(d->textEdit->document(), SIGNAL(contentsChange(int, int, int)),
             this, SLOT(contentsChange(int, int, int)));
 
-    QShortcut* find = new QShortcut(this);
-    find->setKey(Qt::CTRL + Qt::Key_F );
-    connect(find, SIGNAL(activated()), d->searchBar, SLOT(show()));
+    // is set globaly
+    //QShortcut* find = new QShortcut(this);
+    //find->setKey(Qt::CTRL + Qt::Key_F );
+    //connect(find, SIGNAL(activated()), d->searchBar, SLOT(show()));
 }
 
 /** Destroys the object and frees any allocated resources */
