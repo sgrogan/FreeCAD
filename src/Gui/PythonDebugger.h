@@ -27,21 +27,21 @@
 #include <CXX/Extensions.hxx>
 #include <frameobject.h>
 #include <string>
-#include <set>
+#include <vector>
 
 namespace Gui {
 
-class BreakPointLine {
+class BreakpointLine {
 public:
     //BreakPointLine(); // we sholud not create without lineNr
-    BreakPointLine(int lineNr);
-    BreakPointLine(const BreakPointLine &other);
-    ~BreakPointLine();
+    BreakpointLine(int lineNr);
+    BreakpointLine(const BreakpointLine &other);
+    ~BreakpointLine();
 
-    BreakPointLine& operator=(const BreakPointLine &other);
+    BreakpointLine& operator=(const BreakpointLine &other);
     bool operator==(int lineNr) const;
     bool operator!=(int lineNr) const;
-    inline bool operator<(const BreakPointLine &other) const;
+    inline bool operator<(const BreakpointLine &other) const;
     bool operator<(const int &line) const;
 
     int lineNr() const;
@@ -97,7 +97,7 @@ public:
     bool operator ==(const QString& fn);
 
     void addLine(int line);
-    void addLine(BreakPointLine bpl);
+    void addLine(BreakpointLine bpl);
     void removeLine(int line);
     bool containsLine(int line);
     void setDisable(int line, bool disable);
@@ -106,11 +106,11 @@ public:
     int countLines()const;
 
     bool checkBreakpoint(const QString& fn, int line);
-    BreakPointLine *getBreakPointLine(int line);
+    BreakpointLine *getBreakPointLine(int line);
 
 private:
     QString _filename;
-    std::vector<BreakPointLine> _lines;
+    std::vector<BreakpointLine> _lines;
 };
 
 inline const QString& Breakpoint::filename()const
@@ -126,7 +126,7 @@ inline int Breakpoint::countLines()const
 inline bool Breakpoint::checkBreakpoint(const QString& fn, int line)
 {
     assert(!_filename.isEmpty());
-    for (BreakPointLine bp : _lines) {
+    for (BreakpointLine &bp : _lines) {
         if (bp == line)
             return fn == _filename;
     }
@@ -216,13 +216,18 @@ public:
     PythonDebugger();
     ~PythonDebugger();
     Breakpoint getBreakpoint(const QString&) const;
-    BreakPointLine *getBreakpointLine(const QString fn, int line);
+    BreakpointLine *getBreakpointLine(const QString fn, int line);
     void setBreakpoint(const QString fn, int line);
-    void setBreakpoint(const QString fn, BreakPointLine bpl);
+    void setBreakpoint(const QString fn, BreakpointLine bpl);
+    void deleteBreakpoint(const QString fn, int line);
     void setDisableBreakpoint(const QString fn, int line, bool disable);
     bool toggleBreakpoint(int line, const QString&);
     void runFile(const QString& fn);
     bool isRunning() const;
+    void showDebugMarker(const QString&, int line);
+    void hideDebugMarker(const QString&);
+
+public Q_SLOTS:
     bool start();
     bool stop();
     void tryStop();
@@ -231,11 +236,12 @@ public:
     void stepInto();
     void stepOut();
     void stepRun();
-    void showDebugMarker(const QString&, int line);
-    void hideDebugMarker(const QString&);
 
 Q_SIGNALS:
-    void signalNextStep();
+    void signalNextStep(); // used internally
+    void nextInstruction(PyFrameObject *frame);
+    void functionCalled(PyFrameObject *frame);
+    void functionExited(PyFrameObject *frame);
 
 private:
     static int tracer_callback(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg);
