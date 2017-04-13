@@ -33,7 +33,7 @@ namespace Gui {
 
 class BreakpointLine {
 public:
-    //BreakPointLine(); // we sholud not create without lineNr
+    //BreakPointLine(); // we should not create without lineNr
     BreakpointLine(int lineNr);
     BreakpointLine(const BreakpointLine &other);
     ~BreakpointLine();
@@ -224,8 +224,16 @@ public:
     bool toggleBreakpoint(int line, const QString&);
     void runFile(const QString& fn);
     bool isRunning() const;
-    void showDebugMarker(const QString&, int line);
-    void hideDebugMarker(const QString&);
+    bool isHalted() const;
+    PyFrameObject *currentFrame() const;
+    /**
+     * @brief callDepth: gets the call depth of frame
+     * @param frame: if null use currentFrame
+     * @return the call depth
+     */
+    int callDepth(const PyFrameObject *frame) const;
+    int callDepth() const;
+    static PythonDebugger *instance();
 
 public Q_SLOTS:
     bool start();
@@ -235,20 +243,25 @@ public Q_SLOTS:
     void stepOver();
     void stepInto();
     void stepOut();
-    void stepRun();
+    void stepContinue();
 
 Q_SIGNALS:
-    void signalNextStep(); // used internally
+    void _signalNextStep(); // used internally
+    void started();
+    void stopped();
     void nextInstruction(PyFrameObject *frame);
     void functionCalled(PyFrameObject *frame);
     void functionExited(PyFrameObject *frame);
+    void haltAt(const QString &filename, int line);
+    void releaseAt(const QString &filename, int line);
 
 private:
     static int tracer_callback(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg);
     static bool evalCondition(const char *condition, PyFrameObject *frame);
+    static void finalizeFunction(); // called when interpreter finalizes
 
-private:
     struct PythonDebuggerP* d;
+    static PythonDebugger *globalInstance;
 };
 
 } // namespace Gui

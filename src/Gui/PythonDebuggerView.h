@@ -24,20 +24,22 @@
 #define PYTHONDEBUGGERVIEW_H
 
 
-#include <QListWidget>
-#include <Base/Console.h>
+#include <QAbstractTableModel>
+//#include <Base/Console.h>
 #include "DockWindow.h"
 #include "Window.h"
 #include <frameobject.h>
 
-class QTabWidget;
 class QLabel;
+class QTableView;
+class QPushButton;
+class QVBoxLayout;
+
 
 namespace Gui {
 namespace DockWnd {
 
-class StackFramesWidget;
-
+class PythonDebuggerViewP;
 /**
  * @brief PythonDebugger dockable widgets
  */
@@ -48,32 +50,45 @@ public:
     PythonDebuggerView(QWidget *parent = 0);
     ~PythonDebuggerView();
 
+
 protected:
     void changeEvent(QEvent *e);
 
+private Q_SLOTS:
+    void startDebug();
+    void enableButtons();
+
 private:
-    StackFramesWidget *m_stackFrame;
-    QLabel *m_stackLabel;
+    void initButtons(QVBoxLayout *vLayout);
+    PythonDebuggerViewP *d;
 };
 
 
 /**
- * @brief Displays the stackframe
+ * @brief data model for stacktrace
  */
-class StackFramesWidget : public QListWidget
+class StackFramesModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    StackFramesWidget(QWidget *parent = 0);
-    ~StackFramesWidget();
+    StackFramesModel(QObject *parent = 0);
+    ~StackFramesModel();
+
+    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    QVariant data(const QModelIndex &index, int role) const;
+    QVariant headerData(int section, Qt::Orientation orientation,
+                        int role = Qt::DisplayRole) const;
+
+public Q_SLOTS:
+    void clear();
 
 private Q_SLOTS:
-    void functionCalled(PyFrameObject *frame);
-    void functionExited(PyFrameObject *frame);
     void updateFrames(PyFrameObject *frame);
 
 private:
     PyFrameObject *m_currentFrame;
+    static const int colCount = 3;
 };
 
 } // namespace DockWnd

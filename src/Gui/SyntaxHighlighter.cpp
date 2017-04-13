@@ -39,11 +39,11 @@ public:
         cNumber.setRgb(0, 0, 255); cOperator.setRgb(160, 160, 164);
         cKeyword.setRgb(0, 0, 255); cClassName.setRgb(255, 170, 0);
         cDefineName.setRgb(255, 170, 0); cOutput.setRgb(170, 170, 127); 
-        cError.setRgb(255, 0, 0);
+        cError.setRgb(255, 0, 0), cBuiltin.setRgb(210, 43, 216);
     }
 
     QColor cNormalText, cComment, cBlockcomment, cLiteral, cNumber,
-    cOperator, cKeyword, cClassName, cDefineName, cOutput, cError;
+    cOperator, cKeyword, cClassName, cDefineName, cOutput, cError, cBuiltin;
 };
 } // namespace Gui
 
@@ -96,6 +96,8 @@ void SyntaxHighlighter::setColor(const QString& type, const QColor& col)
         d->cOutput = col;
     else if (type == QLatin1String("Python error"))
         d->cError = col;
+    else if (type == QLatin1String("Python builtin"))
+        d->cBuiltin = col;
     colorChanged(type, col);
 }
 
@@ -123,6 +125,8 @@ QColor SyntaxHighlighter::color(const QString& type)
         return d->cOutput;
     else if (type == QLatin1String("Python error"))
         return d->cError;
+    else if (type == QLatin1String("Python builtin"))
+        return d->cBuiltin;
     else
         return QColor(); // not found
 }
@@ -151,6 +155,8 @@ QColor SyntaxHighlighter::colorByType(SyntaxHighlighter::TColor type)
         return d->cOutput;
     else if (type == SyntaxHighlighter::Error)
         return d->cError;
+    else if (type == SyntaxHighlighter::Builtin)
+        return d->cBuiltin;
     else
         return QColor(); // not found
 }

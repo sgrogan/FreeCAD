@@ -594,6 +594,12 @@ PythonEditorView::PythonEditorView(PythonEditor* editor, QWidget* parent)
 {
     connect(this, SIGNAL(changeFileName(const QString&)),
             editor, SLOT(setFileName(const QString&)));
+
+    PythonDebugger *debugger = Application::Instance->macroManager()->debugger();
+    connect(debugger, SIGNAL(haltAt(QString,int)),
+            this, SLOT(showDebugMarker(QString, int)));
+    connect(debugger, SIGNAL(releaseAt(QString,int)),
+            this, SLOT(hideDebugMarker(QString, int)));
 }
 
 PythonEditorView::~PythonEditorView()
@@ -661,14 +667,17 @@ void PythonEditorView::toggleBreakpoint()
     _pye->toggleBreakpoint();
 }
 
-void PythonEditorView::showDebugMarker(int line)
+void PythonEditorView::showDebugMarker(const QString &filename, int line)
 {
-    _pye->showDebugMarker(line);
+    if (filename == this->fileName())
+        _pye->showDebugMarker(line);
 }
 
-void PythonEditorView::hideDebugMarker()
+void PythonEditorView::hideDebugMarker(const QString &filename, int line)
 {
-    _pye->hideDebugMarker();
+    Q_UNUSED(line);
+    if (filename == this->fileName())
+        _pye->hideDebugMarker();
 }
 
 // -------------------------------------------------------------------------------------

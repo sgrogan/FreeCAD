@@ -173,7 +173,7 @@ void StdCmdMacroStartDebug::activated(int iMsg)
     if (!dbg->isRunning())
         doCommand(Command::Gui,"Gui.SendMsgToActiveView(\"StartDebug\")");
     else
-        dbg->stepRun();
+        dbg->stepContinue();
 }
 
 bool StdCmdMacroStartDebug::isActive(void)

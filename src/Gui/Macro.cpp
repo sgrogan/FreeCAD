@@ -54,7 +54,7 @@ MacroManager::MacroManager()
     scriptToPyConsole(true),
     localEnv(true),
     pyConsole(0),
-    pyDebugger(new PythonDebugger())
+    pyDebugger(PythonDebugger::instance())
 {
     // Attach to the Parametergroup regarding macros
     this->params = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/Macro");

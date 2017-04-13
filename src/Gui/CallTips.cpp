@@ -76,10 +76,9 @@ private:
 
 using namespace Gui;
 
-CallTipsList::CallTipsList(QPlainTextEdit* parent, const QString mainName)
+CallTipsList::CallTipsList(QPlainTextEdit* parent)
   :  QListWidget(parent), textEdit(parent), cursorPos(0),
-    validObject(true), doCallCompletion(false),
-    modName(mainName)
+    validObject(true), doCallCompletion(false)
 {
     // make the user assume that the widget is active
     QPalette pal = parent->palette();
@@ -206,7 +205,7 @@ QMap<QString, CallTip> CallTipsList::extractTips(const QString& context) const
         return tips;
 
     try {
-        Py::Module module(modName.toStdString());
+        Py::Module module("__main__");
         Py::Dict dict = module.getDict();
 #if 0
         QStringList items = context.split(QLatin1Char('.'));

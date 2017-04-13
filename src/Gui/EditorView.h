@@ -127,8 +127,8 @@ public Q_SLOTS:
     void executeScript();
     void startDebug();
     void toggleBreakpoint();
-    void showDebugMarker(int line);
-    void hideDebugMarker();
+    void showDebugMarker(const QString &filename, int line);
+    void hideDebugMarker(const QString &filename, int line);
 
 private:
     PythonEditor* _pye;

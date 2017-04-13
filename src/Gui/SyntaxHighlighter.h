@@ -52,7 +52,7 @@ protected:
     enum TColor
     {
         Text = 0, Comment = 1, BlockComment = 2, Number = 3, String = 4, Keyword = 5,
-        Classname = 6, Defname = 7, Operator = 8, Output = 9, Error = 10
+        Classname = 6, Defname = 7, Operator = 8, Output = 9, Error = 10, Builtin = 11
     };
 
     QColor colorByType(TColor type);

@@ -54,7 +54,7 @@ class CallTipsList : public QListWidget
 
 public:
     /// Construction
-    CallTipsList(QPlainTextEdit* parent, const QString mainName = QLatin1String("__main__"));
+    CallTipsList(QPlainTextEdit* parent);
     /// Destruction
     ~CallTipsList();
 
@@ -84,7 +84,6 @@ private:
     bool doCallCompletion;
     QList<int> hideKeys;
     QList<int> compKeys;
-    QString    modName;
 };
 
 } // namespace Gui

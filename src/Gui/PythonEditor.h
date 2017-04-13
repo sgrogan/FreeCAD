@@ -54,15 +54,15 @@ public:
     PythonEditor(QWidget *parent = 0);
     ~PythonEditor();
 
+public Q_SLOTS:
     void toggleBreakpoint();
     void showDebugMarker(int line);
     void hideDebugMarker();
     // python modules for code completion
-    void importModule(const QString name);
-    void importModuleFrom(const QString from, const QString name);
+    //void importModule(const QString name);
+    //void importModuleFrom(const QString from, const QString name);
 
 
-public Q_SLOTS:
     /** Inserts a '#' at the beginning of each selected line or the current line if 
      * nothing is selected
      */
@@ -161,6 +161,7 @@ private:
     inline void setKeyword(int pos, int len);
     inline void setText(int pos, int len);
     inline void setNumber(int pos, int len);
+    inline void setBuiltin(int pos, int len);
 };
 
 struct MatchingCharInfo

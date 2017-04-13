@@ -30,9 +30,9 @@
 #endif
 
 #include "PythonDebugger.h"
-#include "MainWindow.h"
-#include "EditorView.h"
-#include "PythonEditor.h"
+//#include "MainWindow.h"
+//#include "EditorView.h"
+//#include "PythonEditor.h"
 #include "BitmapFactory.h"
 #include <Base/Interpreter.h>
 #include <Base/Console.h>
@@ -475,10 +475,10 @@ namespace Gui {
 class PythonDebuggerPy : public Py::PythonExtension<PythonDebuggerPy> 
 {
 public:
-    PythonDebuggerPy(PythonDebugger* d) : dbg(d), depth(0) { }
+    PythonDebuggerPy(PythonDebugger* d) : dbg(d)/*,depth(0)*/ { }
     ~PythonDebuggerPy() {}
     PythonDebugger* dbg;
-    int depth;
+    //int depth;
 };
 
 // -----------------------------------------------------
@@ -508,27 +508,30 @@ private:
 // -----------------------------------------------------
 
 struct PythonDebuggerP {
+    typedef void(PythonDebuggerP::*voidFunction)(void);
     PyObject* out_o;
     PyObject* err_o;
     PyObject* exc_o;
     PyObject* out_n;
     PyObject* err_n;
     PyObject* exc_n;
+    PyFrameObject* currentFrame;
     PythonDebugExcept* pypde;
     RunningState state;
-    bool init, trystop;
+    bool init, trystop, halted;
     int maxHaltLevel;
     QEventLoop loop;
     PyObject* pydbg;
     std::vector<Breakpoint> bps;
 
     PythonDebuggerP(PythonDebugger* that) :
-        init(false), trystop(false),
+        init(false), trystop(false), halted(false),
         maxHaltLevel(-1)
     {
         out_o = 0;
         err_o = 0;
         exc_o = 0;
+        currentFrame = 0;
         Base::PyGILStateLocker lock;
         out_n = new PythonDebugStdout();
         err_n = new PythonDebugStderr();
@@ -551,15 +554,21 @@ struct PythonDebuggerP {
 
 // ---------------------------------------------------------------
 
-
 PythonDebugger::PythonDebugger()
   : d(new PythonDebuggerP(this))
 {
+    globalInstance = this;
+
+    typedef void (*STATICFUNC)( );
+    STATICFUNC fp = PythonDebugger::finalizeFunction;
+    Py_AtExit(fp);
 }
 
 PythonDebugger::~PythonDebugger()
 {
+    stop();
     delete d;
+    globalInstance = nullptr;
 }
 
 Breakpoint PythonDebugger::getBreakpoint(const QString& fn) const
@@ -720,22 +729,37 @@ bool PythonDebugger::isRunning() const
     return d->state != RunningState::Stopped;
 }
 
+bool PythonDebugger::isHalted() const
+{
+    Base::PyGILStateLocker locker;
+    return d->halted;
+}
+
 bool PythonDebugger::start()
 {
+    if (d->state == RunningState::Stopped)
+        d->state = RunningState::Running;
+
     if (d->init)
         return false;
+
     d->init = true;
     d->trystop = false;
-    Base::PyGILStateLocker lock;
-    d->out_o = PySys_GetObject("stdout");
-    d->err_o = PySys_GetObject("stderr");
-    d->exc_o = PySys_GetObject("excepthook");
 
-    PySys_SetObject("stdout", d->out_n);
-    PySys_SetObject("stderr", d->err_n);
-    PySys_SetObject("excepthook", d->exc_o);
+    { // thread lock code block
+        Base::PyGILStateLocker lock;
+        d->out_o = PySys_GetObject("stdout");
+        d->err_o = PySys_GetObject("stderr");
+        d->exc_o = PySys_GetObject("excepthook");
 
-    PyEval_SetTrace(tracer_callback, d->pydbg);
+        PySys_SetObject("stdout", d->out_n);
+        PySys_SetObject("stderr", d->err_n);
+        PySys_SetObject("excepthook", d->exc_o);
+
+        PyEval_SetTrace(tracer_callback, d->pydbg);
+    } // end threadlock codeblock
+
+    Q_EMIT started();
     return true;
 }
 
@@ -743,86 +767,136 @@ bool PythonDebugger::stop()
 {
     if (!d->init)
         return false;
-    Base::PyGILStateLocker lock;
-    PyEval_SetTrace(NULL, NULL);
-    PySys_SetObject("stdout", d->out_o);
-    PySys_SetObject("stderr", d->err_o);
-    PySys_SetObject("excepthook", d->exc_o);
-    d->init = false;
+    if (d->halted)
+        _signalNextStep();
+
+    { // threadlock code block
+        Base::PyGILStateLocker lock;
+        PyEval_SetTrace(NULL, NULL);
+        PySys_SetObject("stdout", d->out_o);
+        PySys_SetObject("stderr", d->err_o);
+        PySys_SetObject("excepthook", d->exc_o);
+        d->init = false;
+    } // end thread lock code block
+    d->currentFrame = nullptr;
+    d->state = RunningState::Stopped;
+    d->halted = false;
+    d->trystop = false;
+    Q_EMIT stopped();
     return true;
 }
 
 void PythonDebugger::tryStop()
 {
     d->trystop = true;
-    signalNextStep();
+    _signalNextStep();
 }
 
 void PythonDebugger::haltOnNext()
 {
+    start();
     d->state = RunningState::HaltOnNext;
 }
 
 void PythonDebugger::stepOver()
 {
     d->state = RunningState::StepOver;
-    d->maxHaltLevel = static_cast<PythonDebuggerPy*>(d->pydbg)->depth;
-    signalNextStep();
+    d->maxHaltLevel = callDepth();
+    _signalNextStep();
 }
 
 void PythonDebugger::stepInto()
 {
     d->state = RunningState::SingleStep;
-    signalNextStep();
+    _signalNextStep();
 }
 
 void PythonDebugger::stepOut()
 {
     d->state = RunningState::StepOut;
-    d->maxHaltLevel = static_cast<PythonDebuggerPy*>(d->pydbg)->depth;
-    signalNextStep();
+    d->maxHaltLevel = callDepth() -1;
+    if (d->maxHaltLevel < 0)
+        d->maxHaltLevel = 0;
+    _signalNextStep();
 }
 
-void PythonDebugger::stepRun()
+void PythonDebugger::stepContinue()
 {
     d->state = RunningState::Running;
-    signalNextStep();
+    _signalNextStep();
 }
 
-void PythonDebugger::showDebugMarker(const QString& fn, int line)
+//void PythonDebugger::showDebugMarker(const QString& fn, int line)
+//{
+//    PythonEditorView* edit = 0;
+//    QList<QWidget*> mdis = getMainWindow()->windows();
+//    for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
+//        edit = qobject_cast<PythonEditorView*>(*it);
+//        if (edit && edit->fileName() == fn)
+//            break;
+//    }
+
+//    if (!edit) {
+//        PythonEditor* editor = new PythonEditor();
+//        editor->setWindowIcon(Gui::BitmapFactory().iconFromTheme("applications-python"));
+//        edit = new PythonEditorView(editor, getMainWindow());
+//        edit->open(fn);
+//        edit->resize(400, 300);
+//        getMainWindow()->addWindow(edit);
+//    }
+
+//    getMainWindow()->setActiveWindow(edit);
+//    edit->showDebugMarker(line);
+//}
+
+//void PythonDebugger::hideDebugMarker(const QString& fn)
+//{
+//    PythonEditorView* edit = 0;
+//    QList<QWidget*> mdis = getMainWindow()->windows();
+//    for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
+//        edit = qobject_cast<PythonEditorView*>(*it);
+//        if (edit && edit->fileName() == fn) {
+//            edit->hideDebugMarker();
+//            break;
+//        }
+//    }
+//}
+
+PyFrameObject *PythonDebugger::currentFrame() const
 {
-    PythonEditorView* edit = 0;
-    QList<QWidget*> mdis = getMainWindow()->windows();
-    for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
-        edit = qobject_cast<PythonEditorView*>(*it);
-        if (edit && edit->fileName() == fn)
-            break;
-    }
-
-    if (!edit) {
-        PythonEditor* editor = new PythonEditor();
-        editor->setWindowIcon(Gui::BitmapFactory().iconFromTheme("applications-python"));
-        edit = new PythonEditorView(editor, getMainWindow());
-        edit->open(fn);
-        edit->resize(400, 300);
-        getMainWindow()->addWindow(edit);
-    }
-
-    getMainWindow()->setActiveWindow(edit);
-    edit->showDebugMarker(line);
+    Base::PyGILStateLocker locker;
+    return d->currentFrame;
 }
 
-void PythonDebugger::hideDebugMarker(const QString& fn)
+int PythonDebugger::callDepth(const PyFrameObject *frame) const
 {
-    PythonEditorView* edit = 0;
-    QList<QWidget*> mdis = getMainWindow()->windows();
-    for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
-        edit = qobject_cast<PythonEditorView*>(*it);
-        if (edit && edit->fileName() == fn) {
-            edit->hideDebugMarker();
-            break;
-        }
+    PyFrameObject const *fr = frame;
+    int i = 0;
+    Base::PyGILStateLocker locker;
+    while (nullptr != fr) {
+        fr = fr->f_back;
+        ++i;
     }
+
+    return i;
+}
+
+int PythonDebugger::callDepth() const
+{
+    Base::PyGILStateLocker locker;
+    PyFrameObject const *fr = d->currentFrame;
+    return callDepth(fr);
+}
+
+// is owned by macro manager which handles delete
+PythonDebugger* PythonDebugger::globalInstance = nullptr;
+
+PythonDebugger *PythonDebugger::instance()
+{
+    if (globalInstance == nullptr)
+        // is owned by macro manager which handles delete
+        globalInstance = new PythonDebugger;
+    return globalInstance;
 }
 
 // http://www.koders.com/cpp/fidBA6CD8A0FE5F41F1464D74733D9A711DA257D20B.aspx?s=PyEval_SetTrace
@@ -851,13 +925,13 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
 #endif
     switch (what) {
     case PyTrace_CALL:
-        self->depth++;
+//        self->depth++;
         if (dbg->d->state != RunningState::Running)
             Q_EMIT dbg->functionCalled(frame);
         return 0;
     case PyTrace_RETURN:
-        if (self->depth > 0)
-            self->depth--;
+//        if (self->depth > 0)
+//            self->depth--;
 
         if (dbg->d->state != RunningState::Running)
             Q_EMIT dbg->functionExited(frame);
@@ -871,33 +945,46 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
                 dbg->d->state == RunningState::HaltOnNext)
             {
                 halt = true;
-            } else if(dbg->d->state == RunningState::StepOver &&
-                      dbg->d->maxHaltLevel >= self->depth)
-            {
-                halt = true;
-            } else if(dbg->d->state == RunningState::StepOut &&
-                     dbg->d->maxHaltLevel > self->depth)
+            } else if((dbg->d->state == RunningState::StepOver ||
+                       dbg->d->state == RunningState::StepOut) &&
+                      dbg->d->maxHaltLevel >= dbg->callDepth(frame))
             {
                 halt = true;
             } else { // RunningState
                 BreakpointLine *bp = dbg->getBreakpointLine(file, line);
                 if (bp != nullptr) {
-                    if (bp->hit()) {
-                        halt = true;
-                    } else if(!bp->condition().size()) {
+                    if (bp->condition().size()) {
                         halt = PythonDebugger::evalCondition(bp->condition().toLatin1(),
                                                              frame);
+                    } else if (bp->hit()) {
+                        halt = true;
                     }
                 }
             }
 
             if (halt) {
-                dbg->showDebugMarker(file, line);
-                Q_EMIT dbg->nextInstruction(frame);
+
+                while(dbg->d->halted) {
+                    // already halted, must be another thread here
+                    // halt until current thread releases
+                    QCoreApplication::processEvents();
+                }
+
                 QEventLoop loop;
-                QObject::connect(dbg, SIGNAL(signalNextStep()), &loop, SLOT(quit()));
+                {   // threadlock block
+                    Base::PyGILStateLocker locker;
+                    dbg->d->currentFrame = frame;
+                    dbg->d->halted = true;
+                    Q_EMIT dbg->haltAt(file, line);
+                    Q_EMIT dbg->nextInstruction(frame);
+                }   // end threadlock block
+                QObject::connect(dbg, SIGNAL(_signalNextStep()), &loop, SLOT(quit()));
                 loop.exec();
-                dbg->hideDebugMarker(file);
+                {   // threadlock block
+                    Base::PyGILStateLocker locker;
+                    dbg->d->halted = false;
+                }   // end threadlock block
+                Q_EMIT dbg->releaseAt(file, line);
             }
 
             return 0;
@@ -953,6 +1040,13 @@ bool PythonDebugger::evalCondition(const char *condition, PyFrameObject *frame)
     Py_DecRef(result);
 
     return true;
+}
+
+// static
+void PythonDebugger::finalizeFunction()
+{
+    if (globalInstance != nullptr)
+        globalInstance->_signalNextStep(); // release a pending halt on app close
 }
 
 #include "moc_PythonDebugger.cpp"

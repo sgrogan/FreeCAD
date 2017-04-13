@@ -153,6 +153,11 @@
         <file>px.svg</file>
         <file>AddonManager.svg</file>
         <file>breakpoint-disabled.svg</file>
+        <file>debug-halt.svg</file>
+        <file>debug-step-into.svg</file>
+        <file>debug-step-out.svg</file>
+        <file>debug-step-over.svg</file>
+        <file>debug-continue.svg</file>
     </qresource>
     <qresource prefix="/icons/FreeCAD-default">
         <file>index.theme</file>
