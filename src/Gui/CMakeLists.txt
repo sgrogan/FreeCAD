@@ -262,6 +262,7 @@ set(Gui_MOC_HDRS
     ProgressBar.h
     PropertyPage.h
     PropertyView.h
+    PythonCode.h
     PythonConsole.h
     PythonDebuggerView.h
     PythonDebugger.h
@@ -634,6 +635,7 @@ SOURCE_GROUP("Dock Windows" FILES ${Dock_Windows_SRCS})
 SET(Editor_CPP_SRCS
     CallTips.cpp
     EditorView.cpp
+    PythonCode.cpp
     PythonConsole.cpp
     PythonConsolePy.cpp
     PythonDebugger.cpp
@@ -644,6 +646,7 @@ SET(Editor_CPP_SRCS
 SET(Editor_HPP_SRCS
     CallTips.h
     EditorView.h
+    PythonCode.h
     PythonConsole.h
     PythonConsolePy.h
     PythonDebugger.h

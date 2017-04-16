@@ -27,6 +27,7 @@
 #include "Window.h"
 #include "TextEdit.h"
 #include "SyntaxHighlighter.h"
+#include "PythonCode.h"
 #include <QDialog>
 
 
@@ -41,6 +42,7 @@ namespace Gui {
 class PythonSyntaxHighlighter;
 class PythonSyntaxHighlighterP;
 class PythonEditorBreakpointDlg;
+class PythonDebugger;
 
 /**
  * Python text editor with syntax highlighting.
@@ -96,11 +98,11 @@ private Q_SLOTS:
 private:
     //PythonSyntaxHighlighter* pythonSyntax;
     struct PythonEditorP* d;
+    QString introspect(QString varName);
 };
 
 // ---------------------------------------------------------------
 
-class PythonDebugger;
 class PythonEditorBreakpointDlg : public QDialog
 {
     Q_OBJECT
@@ -119,89 +121,6 @@ protected:
     QSpinBox  *m_ignoreFromHits;
     QLineEdit *m_condition;
     QCheckBox *m_enabled;
-};
-
-// --------------------------------------------------------------------
-
-/**
- * Syntax highlighter for Python.
- * \author Werner Mayer
- */
-class GuiExport PythonSyntaxHighlighter : public SyntaxHighlighter
-{
-public:
-    PythonSyntaxHighlighter(QObject* parent);
-    virtual ~PythonSyntaxHighlighter();
-
-    void highlightBlock (const QString & text);
-
-    enum States {
-        Standard         = 0,     // Standard text
-        Digit            = 1,     // Digits
-        Comment          = 2,     // Comment begins with #
-        Literal1         = 3,     // String literal beginning with "
-        Literal2         = 4,     // Other string literal beginning with '
-        Blockcomment1    = 5,     // Block comments beginning and ending with """
-        Blockcomment2    = 6,     // Other block comments beginning and ending with '''
-        ClassName        = 7,     // Text after the keyword class
-        DefineName       = 8,     // Text after the keyword def
-        ImportName       = 9,    // Text after import statement
-        FromName         = 10,    // Text after from statement before import statement
-    };
-
-private:
-    PythonSyntaxHighlighterP* d;
-
-    inline void setComment(int pos, int len);
-    inline void setSingleQuotString(int pos, int len);
-    inline void setDoubleQuotString(int pos, int len);
-    inline void setSingleQuotBlockComment(int pos, int len);
-    inline void setDoubleQuotBlockComment(int pos, int len);
-    inline void setOperator(int pos, int len);
-    inline void setKeyword(int pos, int len);
-    inline void setText(int pos, int len);
-    inline void setNumber(int pos, int len);
-    inline void setBuiltin(int pos, int len);
-};
-
-struct MatchingCharInfo
-{
-    char character;
-    int position;
-    MatchingCharInfo();
-    MatchingCharInfo(const MatchingCharInfo &other);
-    MatchingCharInfo(char chr, int pos);
-    char matchingChar() const;
-    static char matchChar(char match);
-};
-
-class PythonTextBlockData : public QTextBlockUserData
-{
-public:
-    PythonTextBlockData();
-    ~PythonTextBlockData();
-
-    QVector<MatchingCharInfo *> matchingChars();
-    void insert(MatchingCharInfo *info);
-    void insert(char chr, int pos);
-
-private:
-    QVector<MatchingCharInfo *> m_matchingChrs;
-};
-
-class PythonMatchingChars : public QObject
-{
-    Q_OBJECT
-
-public:
-    PythonMatchingChars(TextEdit *parent);
-    ~PythonMatchingChars();
-
-private Q_SLOTS:
-    void cursorPositionChange();
-
-private:
-    TextEdit *m_editor;
 };
 
 } // namespace Gui

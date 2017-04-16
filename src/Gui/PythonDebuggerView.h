@@ -24,22 +24,23 @@
 #define PYTHONDEBUGGERVIEW_H
 
 
+#include <CXX/Extensions.hxx>
 #include <QAbstractTableModel>
-//#include <Base/Console.h>
 #include "DockWindow.h"
 #include "Window.h"
 #include <frameobject.h>
+#include <QVariant>
 
-class QLabel;
-class QTableView;
-class QPushButton;
 class QVBoxLayout;
-
+//namespace  Py {
+//class Object;
+//} // namespace Py
 
 namespace Gui {
 namespace DockWnd {
 
 class PythonDebuggerViewP;
+class VariableModelP;
 /**
  * @brief PythonDebugger dockable widgets
  */
@@ -57,6 +58,7 @@ protected:
 private Q_SLOTS:
     void startDebug();
     void enableButtons();
+    void currentChanged(const QModelIndex & current, const QModelIndex & previous);
 
 private:
     void initButtons(QVBoxLayout *vLayout);
@@ -89,6 +91,101 @@ private Q_SLOTS:
 private:
     PyFrameObject *m_currentFrame;
     static const int colCount = 3;
+};
+
+//class VariableModel : public QAbstractTableModel
+//{
+//    Q_OBJECT
+//public:
+//    VariableModel(QObject *parent = 0);
+//    ~VariableModel();
+
+//    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+//    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
+//    QVariant data(const QModelIndex &index, int role) const;
+//    QVariant headerData(int section, Qt::Orientation orientation,
+//                        int role = Qt::DisplayRole) const;
+
+//public Q_SLOTS:
+//    void clear();
+
+//private Q_SLOTS:
+//    void updateVariables(PyFrameObject *frame);
+
+//private:
+//    bool diffObjects(Py::Object *newObj, Py::Object *oldObj, QModelIndex &parent, int rowNr);
+//    void doesDiff(QModelIndex &parent, int rowNr);
+//    VariableModelP *d;
+//    static const int colCount = 2;
+//};
+
+class VariableTreeItem
+{
+public:
+    VariableTreeItem(const QList<QVariant> &data, VariableTreeItem *parent = 0);
+    ~VariableTreeItem();
+
+    void appendChild(VariableTreeItem *child);
+    void removeChild(int row);
+
+    VariableTreeItem *child(int row);
+    VariableTreeItem *childByName(const QString &name);
+    int childRowByName(const QString &name);
+    int childCount() const;
+    int columnCount() const;
+    QVariant data(int column) const;
+    int row() const;
+    VariableTreeItem *parent();
+
+    const QString name() const;
+    const QString value() const;
+    void setValue(const QString value);
+    const QString type() const;
+    void setType(const QString type);
+
+private:
+    QList<VariableTreeItem*> childItems;
+    QList<QVariant> itemData;
+    VariableTreeItem *parentItem;
+};
+
+
+class VariableTreeModel : public QAbstractItemModel
+{
+    Q_OBJECT
+
+public:
+    VariableTreeModel(QObject *parent = 0);
+    ~VariableTreeModel();
+
+    QVariant data(const QModelIndex &index, int role) const;
+    Qt::ItemFlags flags(const QModelIndex &index) const;
+    QVariant headerData(int section, Qt::Orientation orientation,
+                        int role = Qt::DisplayRole) const;
+    QModelIndex index(int row, int column,
+                      const QModelIndex &parent = QModelIndex()) const;
+    QModelIndex parent(const QModelIndex &index) const;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+
+    bool removeRows(int firstRow, int lastRow,
+                     const QModelIndex & parent = QModelIndex());
+    bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
+
+public Q_SLOTS:
+    void clear();
+
+private Q_SLOTS:
+    void updateVariables(PyFrameObject *frame);
+
+private:
+    //void setupModelData(const QStringList &lines, VariableTreeItem *parent);
+    void scanObject(PyObject *startObject, VariableTreeItem *parentItem,
+                    int depth, bool noBuiltins);
+    VariableTreeItem *m_rootItem;
+    VariableTreeItem *m_localsItem;
+    VariableTreeItem *m_globalsItem;
+    VariableTreeItem *m_builtinsItem;
 };
 
 } // namespace DockWnd

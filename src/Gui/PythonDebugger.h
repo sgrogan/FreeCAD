@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (c) 2010 Werner Mayer <wmayer[at]users.sourceforge.net>     *
+ *   Copyright (c) 2017 Fredrik Johansson github.com/mumme74               *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -226,6 +227,7 @@ public:
     bool isRunning() const;
     bool isHalted() const;
     PyFrameObject *currentFrame() const;
+
     /**
      * @brief callDepth: gets the call depth of frame
      * @param frame: if null use currentFrame
@@ -233,6 +235,18 @@ public:
      */
     int callDepth(const PyFrameObject *frame) const;
     int callDepth() const;
+
+    /**
+     * @brief changes currentFrame and emits signals
+     * @param level 0 is to top/global
+     * @return true on sucess
+     */
+    bool setStackLevel(int level);
+
+    /**
+     * @brief gets the global singleton instance
+     * @return
+     */
     static PythonDebugger *instance();
 
 public Q_SLOTS:

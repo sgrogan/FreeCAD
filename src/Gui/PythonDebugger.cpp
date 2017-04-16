@@ -30,9 +30,6 @@
 #endif
 
 #include "PythonDebugger.h"
-//#include "MainWindow.h"
-//#include "EditorView.h"
-//#include "PythonEditor.h"
 #include "BitmapFactory.h"
 #include <Base/Interpreter.h>
 #include <Base/Console.h>
@@ -520,13 +517,14 @@ struct PythonDebuggerP {
     RunningState state;
     bool init, trystop, halted;
     int maxHaltLevel;
+    int showStackLevel;
     QEventLoop loop;
     PyObject* pydbg;
     std::vector<Breakpoint> bps;
 
     PythonDebuggerP(PythonDebugger* that) :
         init(false), trystop(false), halted(false),
-        maxHaltLevel(-1)
+        maxHaltLevel(-1), showStackLevel(-1)
     {
         out_o = 0;
         err_o = 0;
@@ -709,16 +707,19 @@ void PythonDebugger::runFile(const QString& fn)
         fclose(fp);
         Py_DECREF(dict);
 
-        if (!result)
+        if (!result) {
             PyErr_Print();
-        else
+            d->state = RunningState::Stopped;
+         } else
             Py_DECREF(result);
     }
     catch (const Base::PyException&/* e*/) {
         //PySys_WriteStderr("Exception: %s\n", e.what());
+        PyErr_Clear();
     }
     catch (...) {
         Base::Console().Warning("Unknown exception thrown during macro debugging\n");
+        //PyErr_Clear();
     }
 
     d->state = RunningState::Stopped;
@@ -772,6 +773,7 @@ bool PythonDebugger::stop()
 
     { // threadlock code block
         Base::PyGILStateLocker lock;
+        PyErr_Clear();
         PyEval_SetTrace(NULL, NULL);
         PySys_SetObject("stdout", d->out_o);
         PySys_SetObject("stderr", d->err_o);
@@ -865,7 +867,19 @@ void PythonDebugger::stepContinue()
 PyFrameObject *PythonDebugger::currentFrame() const
 {
     Base::PyGILStateLocker locker;
-    return d->currentFrame;
+    if (d->showStackLevel < 0)
+        return d->currentFrame;
+
+    // lets us show different stacks
+    PyFrameObject *fr = d->currentFrame;
+    int i = callDepth() - d->showStackLevel;
+    while (nullptr != fr && i > 1) {
+        fr = fr->f_back;
+        --i;
+    }
+
+    return fr;
+
 }
 
 int PythonDebugger::callDepth(const PyFrameObject *frame) const
@@ -886,6 +900,38 @@ int PythonDebugger::callDepth() const
     Base::PyGILStateLocker locker;
     PyFrameObject const *fr = d->currentFrame;
     return callDepth(fr);
+}
+
+bool PythonDebugger::setStackLevel(int level)
+{
+    if (!d->halted)
+        return false;
+
+    --level; // 0 based
+
+    int calls = callDepth() - 1;
+    if (calls >= level && level >= 0) {
+        if (d->showStackLevel == level)
+            return true;
+
+        Base::PyGILStateLocker lock;
+
+        if (calls == level)
+            d->showStackLevel = -1;
+        else
+            d->showStackLevel = level;
+
+        // notify observers
+        PyFrameObject *frame = currentFrame();
+        if (frame) {
+            int line = PyCode_Addr2Line(frame->f_code, frame->f_lasti);
+            QString file = QString::fromUtf8(PyString_AsString(frame->f_code->co_filename));
+            Q_EMIT haltAt(file, line);
+            Q_EMIT nextInstruction(frame);
+        }
+    }
+
+    return false;
 }
 
 // is owned by macro manager which handles delete
@@ -925,16 +971,18 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
 #endif
     switch (what) {
     case PyTrace_CALL:
-//        self->depth++;
-        if (dbg->d->state != RunningState::Running)
-            Q_EMIT dbg->functionCalled(frame);
+        if (dbg->d->state != RunningState::Running) {
+            try {
+                Q_EMIT dbg->functionCalled(frame);
+            } catch(...){ } // might throw
+        }
         return 0;
     case PyTrace_RETURN:
-//        if (self->depth > 0)
-//            self->depth--;
-
-        if (dbg->d->state != RunningState::Running)
-            Q_EMIT dbg->functionExited(frame);
+        if (dbg->d->state != RunningState::Running) {
+            try {
+                Q_EMIT dbg->functionExited(frame);
+            } catch (...) { }
+        }
         return 0;
     case PyTrace_LINE:
         {
@@ -974,9 +1022,17 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
                 {   // threadlock block
                     Base::PyGILStateLocker locker;
                     dbg->d->currentFrame = frame;
+
+                    if (!dbg->d->halted) {
+                        try {
+                            Q_EMIT dbg->functionCalled(frame);
+                        } catch (...) { }
+                    }
                     dbg->d->halted = true;
-                    Q_EMIT dbg->haltAt(file, line);
-                    Q_EMIT dbg->nextInstruction(frame);
+                    try {
+                        Q_EMIT dbg->haltAt(file, line);
+                        Q_EMIT dbg->nextInstruction(frame);
+                    } catch(...) { }
                 }   // end threadlock block
                 QObject::connect(dbg, SIGNAL(_signalNextStep()), &loop, SLOT(quit()));
                 loop.exec();
@@ -984,7 +1040,9 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
                     Base::PyGILStateLocker locker;
                     dbg->d->halted = false;
                 }   // end threadlock block
-                Q_EMIT dbg->releaseAt(file, line);
+                try {
+                    Q_EMIT dbg->releaseAt(file, line);
+                } catch (...) { }
             }
 
             return 0;
