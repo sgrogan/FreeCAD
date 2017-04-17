@@ -136,8 +136,13 @@ PythonDebuggerView::PythonDebuggerView(QWidget *parent)
     StackFramesModel *stackModel = new StackFramesModel(this);
     d->m_stackView->setModel(stackModel);
     d->m_stackView->verticalHeader()->hide();
-    d->m_stackView->horizontalHeader()->setResizeMode(
-                                    QHeaderView::ResizeToContents);
+    QHeaderView *header = d->m_stackView->horizontalHeader();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    header->setSectionResizeMode(QHeaderView::ResizeToContents);
+#else
+    header->setResizeMode(QHeaderView::ResizeToContents);
+#endif
     d->m_stackView->setShowGrid(false);
     stackLayout->addWidget(d->m_stackLabel);
     stackLayout->addWidget(d->m_stackView);
@@ -552,7 +557,6 @@ PyObject *VariableTreeItem::getAttr(const QString attrName) const
 
     PyObject *found;
     PyObject *attr = PyBytes_FromString(attrName.toLatin1());
-    char *debugkey = PyBytes_AS_STRING(attr);
     if (PyDict_Check(me))
         found = PyDict_GetItem(me, attr);
     else
@@ -574,7 +578,6 @@ bool VariableTreeItem::hasAttr(const QString attrName) const
 
      int found;
      PyObject *attr = PyBytes_FromString(attrName.toLatin1());
-     char *debugkey = PyBytes_AS_STRING(attr);
      if (PyDict_Check(me))
          found = PyDict_Contains(me, attr);
      else
