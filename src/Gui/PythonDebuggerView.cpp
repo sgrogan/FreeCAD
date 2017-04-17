@@ -57,6 +57,7 @@
 #include <QHeaderView>
 #include <QFileDialog>
 #include <QSplitter>
+#include <QDebug>
 
 
 
@@ -116,12 +117,12 @@ PythonDebuggerView::PythonDebuggerView(QWidget *parent)
     d->m_varView = new QTreeView(this);
     VariableTreeModel *varModel = new VariableTreeModel(this);
     d->m_varView->setModel(varModel);
-    //d->m_varView->verticalHeader()->hide();
-    //d->m_varView->horizontalHeader()->setResizeMode(
-    //                                QHeaderView::ResizeToContents);
-    //d->m_varView->setShowGrid(false);
+    d->m_varView->setIndentation(10);
     varLayout->addWidget(d->m_varView);
     splitter->addWidget(varFrame);
+
+    connect(d->m_varView, SIGNAL(expanded(const QModelIndex)),
+            varModel, SLOT(lazyLoad(const QModelIndex)));
 
 
     // the stacktrace view
@@ -144,6 +145,7 @@ PythonDebuggerView::PythonDebuggerView(QWidget *parent)
 
     connect(d->m_stackView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex&)),
                                         this, SLOT(currentChanged(const QModelIndex&, const QModelIndex&)));
+
 
 
     setLayout(vLayout);
@@ -172,29 +174,35 @@ void PythonDebuggerView::changeEvent(QEvent *e)
 
 void PythonDebuggerView::startDebug()
 {
-    PythonEditorView* editView = 0;
-    QList<QWidget*> mdis = getMainWindow()->windows();
-    for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
-        editView = qobject_cast<PythonEditorView*>(*it);
-        if (editView) break;
-    }
+    PythonEditorView* editView = qobject_cast<PythonEditorView*>(
+                                        getMainWindow()->activeWindow());
 
     if (!editView) {
-        WindowParameter param("PythonDebuggerView");
-        std::string path = param.getWindowParameter()->GetASCII("MacroPath",
-            App::Application::getUserMacroDir().c_str());
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open python file"),
-                                                        QLatin1String(path.c_str()),
-                                                        tr("Python (*.py *.FCMacro)"));
-        if (!fileName.isEmpty()) {
-            PythonEditor* editor = new PythonEditor();
-            editor->setWindowIcon(Gui::BitmapFactory().iconFromTheme("applications-python"));
-            editView = new PythonEditorView(editor, getMainWindow());
-            editView->open(fileName);
-            editView->resize(400, 300);
-            getMainWindow()->addWindow(editView);
-        } else {
-            return;
+        // not yet opened editor
+        QList<QWidget*> mdis = getMainWindow()->windows();
+        for (QList<QWidget*>::iterator it = mdis.begin(); it != mdis.end(); ++it) {
+            editView = qobject_cast<PythonEditorView*>(*it);
+            if (editView) break;
+        }
+
+        if (!editView) {
+            WindowParameter param("PythonDebuggerView");
+            std::string path = param.getWindowParameter()->GetASCII("MacroPath",
+                App::Application::getUserMacroDir().c_str());
+            QString fileName = QFileDialog::getOpenFileName(this, tr("Open python file"),
+                                                            QLatin1String(path.c_str()),
+                                                            tr("Python (*.py *.FCMacro)"));
+            if (!fileName.isEmpty()) {
+                PythonEditor* editor = new PythonEditor();
+                editor->setWindowIcon(Gui::BitmapFactory()
+                                      .iconFromTheme("applications-python"));
+                editView = new PythonEditorView(editor, getMainWindow());
+                editView->open(fileName);
+                editView->resize(400, 300);
+                getMainWindow()->addWindow(editView);
+            } else {
+                return;
+            }
         }
     }
 
@@ -349,11 +357,11 @@ QVariant StackFramesModel::data(const QModelIndex &index, int role) const
             case 0:
                 return QString::number(j);
             case 1: { // function
-                const char *funcname = PyString_AsString(frame->f_code->co_name);
+                const char *funcname = PyBytes_AsString(frame->f_code->co_name);
                 return QString(QLatin1String(funcname));
             }
             case 2: {// file
-                const char *filename = PyString_AsString(frame->f_code->co_filename);
+                const char *filename = PyBytes_AsString(frame->f_code->co_filename);
                 return QString(QLatin1String(filename));
             }
             case 3: {// line
@@ -428,10 +436,13 @@ void StackFramesModel::updateFrames(PyFrameObject *frame)
 
 
 
-VariableTreeItem::VariableTreeItem(const QList<QVariant> &data, VariableTreeItem *parent)
+VariableTreeItem::VariableTreeItem(const QList<QVariant> &data,
+                                   VariableTreeItem *parent)
 {
     parentItem = parent;
     itemData = data;
+    lazyLoad = false;
+    rootObj = nullptr;
 }
 
 VariableTreeItem::~VariableTreeItem()
@@ -523,6 +534,65 @@ void VariableTreeItem::setType(const QString type)
     itemData[2] = type;
 }
 
+void VariableTreeItem::setLazyLoadChildren(bool lazy)
+{
+    lazyLoad = lazy;
+}
+
+PyObject *VariableTreeItem::getAttr(const QString attrName) const
+{
+    PyObject *me;
+    if (rootObj == nullptr)
+        me = parentItem->getAttr(itemData[0].toString());
+    else
+        me = rootObj;
+
+    if (!me)
+        return nullptr;
+
+    PyObject *found;
+    PyObject *attr = PyBytes_FromString(attrName.toLatin1());
+    char *debugkey = PyBytes_AS_STRING(attr);
+    if (PyDict_Check(me))
+        found = PyDict_GetItem(me, attr);
+    else
+        found = PyObject_GetAttr(me, attr);
+
+    return found;
+}
+
+bool VariableTreeItem::hasAttr(const QString attrName) const
+{
+     PyObject *me;
+     if (rootObj == nullptr)
+         me = parentItem->getAttr(itemData[0].toString());
+     else
+         me = rootObj;
+
+     if (!me)
+         return false;
+
+     int found;
+     PyObject *attr = PyBytes_FromString(attrName.toLatin1());
+     char *debugkey = PyBytes_AS_STRING(attr);
+     if (PyDict_Check(me))
+         found = PyDict_Contains(me, attr);
+     else
+         found = PyObject_HasAttr(me, attr);
+
+     return found != 0;
+}
+
+void VariableTreeItem::setMeAsRoot(PyObject *root)
+{
+    rootObj = root;
+}
+
+bool VariableTreeItem::lazyLoadChildren() const
+{
+    return lazyLoad;
+}
+
 int VariableTreeItem::row() const
 {
     if (parentItem)
@@ -540,7 +610,7 @@ VariableTreeModel::VariableTreeModel(QObject *parent)
 {
     QList<QVariant> rootData, locals, globals, builtins;
     rootData << tr("Name") << tr("Value") << tr("Type");
-    m_rootItem = new VariableTreeItem(rootData);
+    m_rootItem = new VariableTreeItem(rootData, nullptr);
 
     locals << QLatin1String("locals") << QLatin1String("") << QLatin1String("");
     globals << QLatin1String("globals") << QLatin1String("") << QLatin1String("");
@@ -557,8 +627,8 @@ VariableTreeModel::VariableTreeModel(QObject *parent)
     connect(debugger, SIGNAL(nextInstruction(PyFrameObject*)),
                this, SLOT(updateVariables(PyFrameObject*)));
 
-    connect(debugger, SIGNAL(functionCalled(PyFrameObject*)),
-               this, SLOT(updateVariables(PyFrameObject*)));
+    //connect(debugger, SIGNAL(functionCalled(PyFrameObject*)),
+    //           this, SLOT(updateVariables(PyFrameObject*)));
 
     connect(debugger, SIGNAL(functionExited(PyFrameObject*)),
                this, SLOT(clear()));
@@ -599,7 +669,16 @@ bool VariableTreeModel::removeRows(int firstRow, int lastRow, const QModelIndex 
 
 bool VariableTreeModel::hasChildren(const QModelIndex &parent) const
 {
-    return rowCount(parent) > 0;
+    VariableTreeItem *parentItem;
+    if (parent.column() > 0)
+        return 0;
+
+    if (!parent.isValid())
+        parentItem = m_rootItem;
+    else
+        parentItem = static_cast<VariableTreeItem*>(parent.internalPointer());
+
+    return parentItem->lazyLoadChildren() || parentItem->childCount() > 0;
 }
 
 
@@ -711,20 +790,60 @@ void VariableTreeModel::updateVariables(PyFrameObject *frame)
     // first locals
     VariableTreeItem *parentItem = m_localsItem;
     //Py::Dict rootObject(frame->f_locals);
-    PyObject *rootObject = (PyObject*)frame;
+    PyObject *rootObject = (PyObject*)frame->f_locals;
+    m_localsItem->setMeAsRoot(rootObject);
 
     scanObject(rootObject, parentItem, 0, true);
 
     // then globals
     parentItem = m_globalsItem;
     PyObject *globalsDict = frame->f_globals;
+    m_globalsItem->setMeAsRoot(rootObject);
     scanObject(globalsDict, parentItem, 0, true);
 
     // and the builtins
     parentItem = m_builtinsItem;
+    rootObject = (PyObject*)frame->f_builtins;
+    m_builtinsItem->setMeAsRoot(rootObject);
     scanObject(rootObject, parentItem, 0, false);
 
 }
+
+void VariableTreeModel::lazyLoad(const QModelIndex &parent)
+{
+    VariableTreeItem *parentItem = static_cast<VariableTreeItem*>(parent.internalPointer());
+    if (parentItem->lazyLoadChildren())
+        lazyLoad(parentItem);
+
+}
+
+void VariableTreeModel::lazyLoad(VariableTreeItem *parentItem)
+{
+    Py::Dict dict;
+    // workaround to not beeing able to store pointers to variables
+    QString myName = parentItem->name();
+    PyObject *me = parentItem->parent()->getAttr(myName);
+    if (!me)
+        return;
+
+    try {
+
+        Py::List lst (PyObject_Dir(me));
+
+        for (uint i = 0; i < lst.length(); ++i) {
+            Py::Object attr(PyObject_GetAttr(me, lst[i].str().ptr()));
+            dict.setItem(lst[i], attr);
+        }
+
+        scanObject(dict.ptr(), parentItem, 15, true);
+
+    } catch (Py::Exception e) {
+        PyErr_Print();
+        e.clear();
+    }
+
+}
+
 
 void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *parentItem,
                                    int depth, bool noBuiltins)
@@ -761,12 +880,22 @@ void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *pare
             object = Py::Dict(frame->f_locals);
         } else if (PyModule_Check(startObject)) {
             object = Py::Dict(PyModule_GetDict(startObject));
+        } else {
+            // all objects should be able to use dir(o) on?
+            object = Py::Dict(PyObject_Dir(startObject));
+
         }
         // let other types fail and return here
 
         keys = object.keys();
 
-    } catch(...) {
+    } catch(Py::Exception e) {
+        //Get error message
+        PyObject *ptype, *pvalue, *ptraceback;
+        PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+        Py::String err(pvalue);
+        qDebug() << "Not supported type in debugger:" << QString::fromStdString(err) << endl;
+        e.clear();
         return;
     }
 
@@ -778,25 +907,47 @@ void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *pare
     for (Py::List::iterator it = keys.begin(); it != keys.end(); ++it) {
         Py::String key(*it);
         QString name = QString::fromStdString(key);
-        QString newValue = QString::fromStdString(object[key].str());
-        QString newType = QString::fromStdString(object[key].type().str());
+        // PyCXX metods throws here on type objects from class self type?
+        // use Python C instead
+        QString newValue, newType;
+        PyObject *vl, *tp, *itm;
+        itm = PyDict_GetItem(object.ptr(), key.ptr());
+        if (itm) {
+            Py_XINCREF(itm);
+            vl = PyObject_Str(itm);
+            char *vlu = PyBytes_AS_STRING(vl);
+            newValue = QString(QLatin1String(vlu));
+
+            tp = PyObject_Str((PyObject*)Py_TYPE(itm));
+            char *typ = PyBytes_AS_STRING(tp);
+            newType = QString(QLatin1String(typ));
+            Py_DECREF(itm);
+            Py_XDECREF(vl);
+            Py_XDECREF(tp);
+            PyErr_Clear();
+        }
 
         VariableTreeItem *currentChild = parentItem->childByName(name);
         if (currentChild == nullptr) {
             // not found, should add to model
             if (noBuiltins) {
-                if (newType.contains(QLatin1String("<built-in")))
+                if (newType == QLatin1String("<type 'builtin_function_or_method'>"))
                     continue;
-            } else if (!newType.contains(QLatin1String("<built-in")))
+            } else if (newType != QLatin1String("<type 'builtin_function_or_method'>"))
                 continue;
             QList<QVariant> data;
             data << name << newValue << newType;
             VariableTreeItem *createdItem = new VariableTreeItem(data, parentItem);
             added.append(createdItem);
-            PyObject *pObj = object[key].ptr();
-            if (PyDict_Check(pObj) || PyList_Check(pObj) || PyTuple_Check(pObj)) {
+            if (PyDict_Check(itm) || PyList_Check(itm) || PyTuple_Check(itm)) {
                 // check for subobject recursively
-                scanObject(pObj, createdItem, depth +1, true);
+                scanObject(itm, createdItem, depth +1, true);
+
+            } else if (PyDict_Size(Py_TYPE(itm)->tp_dict)) // && // members check
+                      // !createdItem->parent()->hasAttr(name)) // avoid cyclic child inclusions
+            {
+                // set lazy load for these
+                createdItem->setLazyLoadChildren(true);
             }
         } else {
             visited.append(name);
@@ -809,6 +960,9 @@ void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *pare
                 updated.append(name);
             }
 
+            // check its children
+            if (currentChild->lazyLoadChildren() && currentChild->childCount() > 0)
+                lazyLoad(currentChild);
         }
     }
 
@@ -851,9 +1005,9 @@ void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *pare
         QModelIndex idx = createIndex(rowCount, 0, parentItem);
         beginInsertRows(idx, rowCount, rowCount + added.size()-1);
         for (VariableTreeItem *item : added) {
-            beginInsertRows(idx, rowCount, rowCount+1);
+            //beginInsertRows(idx, rowCount, rowCount+1);
             parentItem->appendChild(item);
-            endInsertRows();
+            //endInsertRows();
         }
         endInsertRows();
     }
@@ -863,228 +1017,6 @@ void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *pare
         Q_EMIT layoutChanged();
     }
 }
-
-/*void VariableTreeModel::doesDiff(QModelIndex &parent, int rowNr)
-{
-    QModelIndex col0(rowNr, 0, parent);
-    QModelIndex col1(rowNr, 1, parent);
-    QModelIndex col2(rowNr, 2, parent);
-}
-
-bool VariableTreeModel::diffObjects(Py::Object *newObj, Py::Object *oldObj, QModelIndex &parent, int rowNr)
-{
-    bool result = false;
-    try {
-        if (newObj->isTuple()) {
-            if (!oldObj->isTuple()) {
-                QModelIndex idx;
-                idx;
-            }
-
-            Py::Tuple newTuple(newObj);
-        }
-    } catch(Py::Exception e) {
-
-    }
-    return result;
-}
-*/
-/*
-void VariableTreeModel::setupModelData(const QStringList &lines, VariableTreeItem *parent)
-{
-    QList<VariableTreeItem*> parents;
-    QList<int> indentations;
-    parents << parent;
-    indentations << 0;
-
-    int number = 0;
-
-    while (number < lines.count()) {
-        int position = 0;
-        while (position < lines[number].length()) {
-            if (lines[number].mid(position, 1) != QLatin1String(" "))
-                break;
-            position++;
-        }
-
-        QString lineData = lines[number].mid(position).trimmed();
-
-        if (!lineData.isEmpty()) {
-            // Read the column data from the rest of the line.
-            QStringList columnStrings = lineData.split(QLatin1String("\t"), QString::SkipEmptyParts);
-            QList<QVariant> columnData;
-            for (int column = 0; column < columnStrings.count(); ++column)
-                columnData << columnStrings[column];
-
-            if (position > indentations.last()) {
-                // The last child of the current parent is now the new parent
-                // unless the current parent has no children.
-
-                if (parents.last()->childCount() > 0) {
-                    parents << parents.last()->child(parents.last()->childCount()-1);
-                    indentations << position;
-                }
-            } else {
-                while (position < indentations.last() && parents.count() > 0) {
-                    parents.pop_back();
-                    indentations.pop_back();
-                }
-            }
-
-            // Append a new item to the current parent's list of children.
-            parents.last()->appendChild(new VariableTreeItem(columnData, parents.last()));
-        }
-
-        number++;
-    }
-}
-*/
-
-
-
-/*
-namespace Gui {
-namespace DockWnd {
-
-class VariableModelP
-{
-public:
-    PythonCode        pyCode;
-    PythonCodeObject *rootObj;
-    VariableModelP() :
-        rootObj(nullptr)
-    {
-    }
-
-    ~VariableModelP()
-    {
-    }
-};
-
-} // namespace DockWnd
-} // namespace Gui
-
-
-VariableModel::VariableModel(QObject *parent):
-    QAbstractTableModel(parent)
-{
-    d = new VariableModelP();
-    PythonDebugger *debugger = PythonDebugger::instance();
-
-    connect(debugger, SIGNAL(functionCalled(PyFrameObject*)),
-               this, SLOT(updateVariables(PyFrameObject*)));
-    connect(debugger, SIGNAL(functionExited(PyFrameObject*)),
-               this, SLOT(updateVariables(PyFrameObject*)));
-    connect(debugger, SIGNAL(stopped()), this, SLOT(clear()));
-}
-
-VariableModel::~VariableModel()
-{
-    delete d;
-}
-
-int VariableModel::rowCount(const QModelIndex &parent) const
-{
-    return 0;
-
-}
-
-int VariableModel::columnCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent);
-    return colCount +1;
-}
-
-QVariant VariableModel::data(const QModelIndex &index, int role) const
-{
-
-    return QVariant();
-}
-
-QVariant VariableModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
-        return QVariant();
-
-    switch (section) {
-    case 0:
-        return QString(tr("Name"));
-    case 1:
-        return QString(tr("Value"));
-    case 2:
-        return QString(tr("Type"));
-    default:
-        return QVariant();
-    }
-}
-
-void VariableModel::clear()
-{
-    beginRemoveRows(QModelIndex(), 0, 1000);
-    endRemoveRows();
-}
-
-void VariableModel::updateVariables(PyFrameObject *frame)
-{
-
-    Base::PyGILStateLocker lock;
-
-    // make a copy of this frame, lets us compare for changes
-    PyObject *copied = d->pyCode.deepCopy((PyObject*)frame);
-    PythonCodeObject *newFrame = new PythonCodeObject(copied);
-
-    PyFrame_FastToLocals(current_frame);
-    Py::Object obj = getDeepObject(current_frame->f_locals, varName, foundKey);
-    if (obj.isNull())
-        obj = getDeepObject(current_frame->f_globals, varName, foundKey);
-
-    if (obj.isNull())
-        obj = getDeepObject(current_frame->f_builtins, varName, foundKey);
-
-    if (obj.isNull()) {
-        return QString();
-    }
-
-
-    // replace our cached copy
-    if (d->rootObj != nullptr)
-        delete d->rootObj;
-    d->rootObj = newFrame;
-
-    beginRemoveRows(QModelIndex(), 0, 1000);
-    endRemoveRows();
-    beginInsertRows(QModelIndex(), 0, rowCount()-1);
-    endInsertRows();
-}
-
-
-void VariableModel::doesDiff(QModelIndex &parent, int rowNr)
-{
-
-    QModelIndex col0(rowNr, 0, parent);
-    QModelIndex col1(rowNr, 1, parent);
-    QModelIndex col2(rowNr, 2, parent);
-}
-
-bool VariableModel::diffObjects(Py::Object *newObj, Py::Object *oldObj, QModelIndex &parent, int rowNr)
-{
-    bool result = false;
-    try {
-        if (newObj->isTuple()) {
-            if (!oldObj->isTuple()) {
-                QModelIndex idx;
-                idx
-            }
-
-            Py::Tuple newTuple(newObj);
-            if (newObj->)
-        }
-    } catch(Py::Exception e) {
-
-    }
-    return result;
-}
-*/
 
 
 

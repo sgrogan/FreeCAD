@@ -64,7 +64,7 @@ PythonCodeObject::~PythonCodeObject()
 
 QString PythonCodeObject::value() const
 {
-    return QLatin1String(PyString_AS_STRING(m_pyObject));
+    return QLatin1String(PyBytes_AS_STRING(m_pyObject));
 }
 
 QString PythonCodeObject::typeName() const
@@ -114,7 +114,7 @@ bool PythonCodeObject::isComplex() const
 
 bool PythonCodeObject::isString(bool notUnicode) const
 {
-    if (PyString_Check(m_pyObject) != 0)
+    if (PyBytes_Check(m_pyObject) != 0)
         return true;
     else if (notUnicode == false)
         return PyUnicode_Check(m_pyObject) != 0;
@@ -313,10 +313,10 @@ PyObject *PythonCode::deepCopy(PyObject *obj)
 //   // dict = traverseFromRoot(dictVars, varName, findName);
 
 //    while (PyDict_Next(dictVars, &pos, &key, &value)) {
-//        name = PyString_AS_STRING(key);
+//        name = PyBytes_AS_STRING(key);
 //        if (name != nullptr && strcmp(name, list[0].toLatin1()) == 0) {
 //            // found correct object
-//            valueStr = PyString_AS_STRING(value);
+//            valueStr = PyBytes_AS_STRING(value);
 //            return QString(QLatin1String("%4 %1: %2=%3\n%5"))
 //                        .arg(QLatin1String(Py_TYPE(value)->tp_name))
 //                        .arg(QLatin1String(name))
@@ -395,8 +395,8 @@ QString PythonCode::findFromCurrentFrame(QString varName)
 //    repr_obj = PyObject_Repr(obj);
 //    typeStr = Py_TYPE(obj)->tp_name;
 //    obj = PyObject_Str(obj);
-//    valueStr = PyString_AS_STRING(obj);
-//    reprStr = PyString_AS_STRING(repr_obj);
+//    valueStr = PyBytes_AS_STRING(obj);
+//    reprStr = PyBytes_AS_STRING(repr_obj);
 //    return QString(QLatin1String("%1:%3\nType:%2\n%4"))
 //                .arg(foundKey)
 //                .arg(QLatin1String(typeStr))
@@ -425,7 +425,7 @@ Py::Object PythonCode::getDeepObject(PyObject *obj, QString key, QString &foundK
         return Py::Object();
 
     for (int i = 0; i < parts.size(); ++i) {
-        keyObj = PyString_FromString(parts[i].toLatin1());
+        keyObj = PyBytes_FromString(parts[i].toLatin1());
         if (keyObj != nullptr) {
             do {
                 if (PyObject_HasAttr(obj, keyObj) > 0) {
@@ -478,7 +478,7 @@ public:
 
         while (PyDict_Next(pyObj, &pos, &key, &value)) {
             char *name;
-            name = PyString_AS_STRING(key);
+            name = PyBytes_AS_STRING(key);
             if (name != nullptr)
                 builtins << QString(QLatin1String(name));
         }

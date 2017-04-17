@@ -719,9 +719,12 @@ void PythonDebugger::runFile(const QString& fn)
     }
     catch (...) {
         Base::Console().Warning("Unknown exception thrown during macro debugging\n");
-        //PyErr_Clear();
     }
 
+    if (d->trystop) {
+        stop(); // de init tracer_function and reset object
+        PyErr_Clear();
+    }
     d->state = RunningState::Stopped;
 }
 
@@ -768,8 +771,11 @@ bool PythonDebugger::stop()
 {
     if (!d->init)
         return false;
-    if (d->halted)
+    if (d->halted) {
+        d->trystop = true;
         _signalNextStep();
+        return false;
+    }
 
     { // threadlock code block
         Base::PyGILStateLocker lock;

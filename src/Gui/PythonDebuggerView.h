@@ -41,6 +41,8 @@ namespace DockWnd {
 
 class PythonDebuggerViewP;
 class VariableModelP;
+
+// -------------------------------------------------------------------------------
 /**
  * @brief PythonDebugger dockable widgets
  */
@@ -65,6 +67,7 @@ private:
     PythonDebuggerViewP *d;
 };
 
+//-------------------------------------------------------------------------------
 
 /**
  * @brief data model for stacktrace
@@ -93,36 +96,13 @@ private:
     static const int colCount = 3;
 };
 
-//class VariableModel : public QAbstractTableModel
-//{
-//    Q_OBJECT
-//public:
-//    VariableModel(QObject *parent = 0);
-//    ~VariableModel();
-
-//    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
-//    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
-//    QVariant data(const QModelIndex &index, int role) const;
-//    QVariant headerData(int section, Qt::Orientation orientation,
-//                        int role = Qt::DisplayRole) const;
-
-//public Q_SLOTS:
-//    void clear();
-
-//private Q_SLOTS:
-//    void updateVariables(PyFrameObject *frame);
-
-//private:
-//    bool diffObjects(Py::Object *newObj, Py::Object *oldObj, QModelIndex &parent, int rowNr);
-//    void doesDiff(QModelIndex &parent, int rowNr);
-//    VariableModelP *d;
-//    static const int colCount = 2;
-//};
+// -------------------------------------------------------------------------------
 
 class VariableTreeItem
 {
 public:
-    VariableTreeItem(const QList<QVariant> &data, VariableTreeItem *parent = 0);
+    VariableTreeItem(const QList<QVariant> &data,
+                     VariableTreeItem *parent);
     ~VariableTreeItem();
 
     void appendChild(VariableTreeItem *child);
@@ -143,12 +123,27 @@ public:
     const QString type() const;
     void setType(const QString type);
 
+    void setLazyLoadChildren(bool lazy);
+    bool lazyLoadChildren() const;
+
+    // traverses up the tree and finds it way down again to find it selfs pointer
+    // a workaround as python doesent seem to hold on to its pointers variables
+    PyObject *getAttr(const QString attrName) const;
+    bool hasAttr(const QString attrName) const;
+
+    // should only be set at locals, global, and builtin level at PyFrameLevel
+    void setMeAsRoot(PyObject *root);
+
+
 private:
     QList<VariableTreeItem*> childItems;
     QList<QVariant> itemData;
     VariableTreeItem *parentItem;
+    PyObject *rootObj;
+    bool lazyLoad;
 };
 
+// ---------------------------------------------------------------------------------
 
 class VariableTreeModel : public QAbstractItemModel
 {
@@ -177,6 +172,8 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void updateVariables(PyFrameObject *frame);
+    void lazyLoad(const QModelIndex &parent);
+    void lazyLoad(VariableTreeItem *parentItem);
 
 private:
     //void setupModelData(const QStringList &lines, VariableTreeItem *parent);
