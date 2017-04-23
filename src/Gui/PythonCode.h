@@ -207,6 +207,8 @@ private Q_SLOTS:
 
 private:
     TextEdit *m_editor;
+    int m_lastPos1;
+    int m_lastPos2;
 };
 
 } // namespace Gui

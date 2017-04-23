@@ -960,7 +960,9 @@ void PythonTextBlockData::insert(char chr, int pos)
 
 PythonMatchingChars::PythonMatchingChars(TextEdit *parent):
     QObject(parent),
-    m_editor(parent)
+    m_editor(parent),
+    m_lastPos1(-1),
+    m_lastPos2(-1)
 {
     // for matching chars such as (, [, { etc.
     connect(parent, SIGNAL(cursorPositionChanged()),
@@ -978,7 +980,22 @@ void PythonMatchingChars::cursorPositionChange()
          rightChr = 0;
     PythonTextBlockData *data = nullptr;
 
-    QList<QTextEdit::ExtraSelection> selections;
+
+    QTextCharFormat format;
+    format.setForeground(QColor(QLatin1String("#f43218")));
+    format.setBackground(QColor(QLatin1String("#f9c7f6")));
+
+    // clear old highlights
+    QList<QTextEdit::ExtraSelection> selections = m_editor->extraSelections();
+    for (int i = 0; i < selections.size(); ++i) {
+        if ((selections[i].cursor.position() == m_lastPos1 ||
+             selections[i].cursor.position() == m_lastPos2) &&
+            selections[i].format == format)
+        {
+            selections.removeAt(i);
+            --i;
+        }
+    }
     m_editor->setExtraSelections(selections);
 
     QTextCursor cursor = m_editor->textCursor();
@@ -989,11 +1006,6 @@ void PythonMatchingChars::cursorPositionChange()
     if (cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor)) {
         leftChr = cursor.selectedText()[0].toLatin1();
     }
-
-
-    QTextCharFormat format;
-    format.setForeground(QColor(QLatin1String("#f43218")));
-    format.setBackground(QColor(QLatin1String("#f9c7f6")));
 
     if (leftChr == '(' || leftChr == '[' || leftChr == '{') {
         for (QTextBlock block = cursor.block();
@@ -1014,6 +1026,8 @@ void PythonMatchingChars::cursorPositionChange()
                     } else {
                         m_editor->highlightText(startPos, 1, format);
                         m_editor->highlightText(match->position, 1, format);
+                        m_lastPos1 = startPos;
+                        m_lastPos2 = match->position;
                         return;
                     }
                 }
@@ -1050,6 +1064,8 @@ void PythonMatchingChars::cursorPositionChange()
                     } else {
                         m_editor->highlightText(startPos - 1, 1, format);
                         m_editor->highlightText((*match)->position, 1, format);
+                        m_lastPos1 = startPos;
+                        m_lastPos2 = (*match)->position;
                         return;
                     }
                 }

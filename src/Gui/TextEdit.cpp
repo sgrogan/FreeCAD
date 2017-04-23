@@ -307,18 +307,24 @@ int TextEditor::findAndHighlight(const QString needle, QTextDocument::FindFlags 
 
 void TextEditor::setTextMarkers(QString key, QList<QTextEdit::ExtraSelection> selections)
 {
+    static const QString highlightLineKey(QLatin1String("highlightCurrentLine"));
+
     // store the new value
     if (selections.size() == 0)
         d->extraSelections.remove(key);
     else
         d->extraSelections.insert(key, selections);
 
-    // show the new value includeding the old stored ones
+    // show the new value including the old stored ones
      QList<QTextEdit::ExtraSelection> show;
-     for (QList<QTextEdit::ExtraSelection> &list : d->extraSelections) {
-         for (QTextEdit::ExtraSelection &sel: list)
-             show.append(sel);
+     for (QString &key : d->extraSelections.keys()) {
+         if (key != highlightLineKey)
+            for (QTextEdit::ExtraSelection &sel: d->extraSelections[key])
+                show.append(sel);
      }
+
+     if (d->extraSelections.keys().contains(highlightLineKey))
+         show.prepend(d->extraSelections[highlightLineKey][0]);
 
      setExtraSelections(show);
 }
