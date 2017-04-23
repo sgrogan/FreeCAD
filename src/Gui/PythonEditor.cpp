@@ -143,6 +143,7 @@ PythonEditor::~PythonEditor()
 {
     getWindowParameter()->Detach( this );
     delete d;
+    d = nullptr;
 }
 
 void PythonEditor::setFileName(const QString& fn)
@@ -177,7 +178,8 @@ void PythonEditor::startDebug()
 {
     if (d->debugger->start()) {
         d->debugger->runFile(d->filename);
-        d->debugger->stop();
+        if (d) // if app gets cloded during debugging halt, d is deleted
+            d->debugger->stop();
     }
 }
 
@@ -457,10 +459,10 @@ void PythonEditor::markerAreaContextMenu(int line, QContextMenuEvent *event)
     QMenu menu;
     BreakpointLine *bpl = d->debugger->getBreakpointLine(d->filename, line);
     if (bpl != nullptr) {
-        QAction disable(tr("Disable breakpoint"), this);
-        QAction enable(tr("Enable breakpoint"), this);
-        QAction edit(tr("Edit breakpoint"), this);
-        QAction del(tr("Delete breakpoint"), this);
+        QAction disable(tr("Disable breakpoint"), &menu);
+        QAction enable(tr("Enable breakpoint"), &menu);
+        QAction edit(tr("Edit breakpoint"), &menu);
+        QAction del(tr("Delete breakpoint"), &menu);
 
         if (bpl->disabled())
             menu.addAction(&enable);

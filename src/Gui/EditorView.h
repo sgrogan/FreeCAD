@@ -26,18 +26,20 @@
 
 #include "MDIView.h"
 #include "Window.h"
+#include <QTextDocument>
+#include <QLineEdit>
 
 QT_BEGIN_NAMESPACE
 class QPlainTextEdit;
 class QPrinter;
 class QLabel;
 class QPushButton;
-class QLineEdit;
 QT_END_NAMESPACE
 
 namespace Gui {
 
 class EditorViewP;
+class EditorSearchClearEdit;
 /**
  * A special view class which sends the messages from the application to
  * the editor and embeds it in a window.
@@ -156,20 +158,36 @@ private Q_SLOTS:
     void replace();
     void replaceAndFind();
     void replaceAll();
+    void showSettings();
 
 private:
-    QLabel      *m_foundCountLabel;
-    QLineEdit   *m_searchEdit;
-    QPushButton *m_searchButton;
-    QPushButton *m_upButton;
-    QPushButton *m_downButton;
-    QPushButton *m_hideButton;
-    QLineEdit   *m_replaceEdit;
-    QPushButton *m_replaceButton;
-    QPushButton *m_replaceAndNextButton;
-    QPushButton *m_replaceAllButton;
-
     EditorViewP *d;
+    QLabel                  *m_foundCountLabel;
+    EditorSearchClearEdit   *m_searchEdit;
+    QPushButton             *m_searchButton;
+    QPushButton             *m_upButton;
+    QPushButton             *m_downButton;
+    QPushButton             *m_hideButton;
+    EditorSearchClearEdit   *m_replaceEdit;
+    QPushButton             *m_replaceButton;
+    QPushButton             *m_replaceAndNextButton;
+    QPushButton             *m_replaceAllButton;
+    QTextDocument::FindFlags m_findFlags;
+};
+
+
+/**
+ * @brief a lineedit class that shows a clear button and a settings button
+ */
+class EditorSearchClearEdit : public QLineEdit
+{
+    Q_OBJECT
+public:
+    EditorSearchClearEdit(QWidget *parent, bool showSettingButton);
+    ~EditorSearchClearEdit();
+
+Q_SIGNALS:
+    void showSettings();
 };
 
 } // namespace Gui

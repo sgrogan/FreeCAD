@@ -45,6 +45,8 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QShortcut>
+#include <QMenu>
+#include <QAction>
 
 #include "EditorView.h"
 #include "Application.h"
@@ -135,10 +137,9 @@ EditorView::EditorView(QPlainTextEdit* editor, QWidget* parent)
     connect(d->textEdit->document(), SIGNAL(contentsChange(int, int, int)),
             this, SLOT(contentsChange(int, int, int)));
 
-    // is set globaly
-    //QShortcut* find = new QShortcut(this);
-    //find->setKey(Qt::CTRL + Qt::Key_F );
-    //connect(find, SIGNAL(activated()), d->searchBar, SLOT(show()));
+    QShortcut* find = new QShortcut(this);
+    find->setKey(Qt::CTRL + Qt::Key_F );
+    connect(find, SIGNAL(activated()), d->searchBar, SLOT(show()));
 }
 
 /** Destroys the object and frees any allocated resources */
@@ -682,16 +683,63 @@ void PythonEditorView::hideDebugMarker(const QString &filename, int line)
 
 // -------------------------------------------------------------------------------------
 
+/**
+ * @brief a lineedit class that shows a clear button and a settings button
+ */
+EditorSearchClearEdit::EditorSearchClearEdit(QWidget *parent, bool showSettingButton) : QLineEdit(parent)
+{
+    QHBoxLayout *editLayout = new QHBoxLayout(this);
+    setLayout(editLayout);
+    editLayout->setContentsMargins(0, 0, 0, 0);
+
+    // set text to not interfere with these buttons
+    QMargins margins = textMargins();
+
+    // a search settings button to lineedit
+    if (showSettingButton) {
+        QPushButton *settingsBtn = new QPushButton(this);
+        editLayout->addWidget(settingsBtn);
+        connect(settingsBtn, SIGNAL(clicked()), this, SIGNAL(showSettings()));
+        settingsBtn->setFlat(true);
+        settingsBtn->setCursor(QCursor(Qt::ArrowCursor));
+        QIcon settIcon = BitmapFactory().iconFromTheme("search-setting");
+        settingsBtn->setIcon(settIcon);
+        margins.setLeft(margins.left() +
+                            settIcon.actualSize(settingsBtn->size()).width() + 10);
+    }
+
+    // add a clear button
+    editLayout->addStretch();
+    QPushButton *clearButton = new QPushButton(this);
+    editLayout->addWidget(clearButton);
+    connect(clearButton, SIGNAL(clicked()), this, SLOT(clear()));
+    connect(clearButton, SIGNAL(clicked()), this, SLOT(setFocus()));
+    clearButton->setFlat(true);
+    clearButton->setCursor(QCursor(Qt::ArrowCursor));
+    QIcon clearIcon = BitmapFactory().iconFromTheme("clear-text");
+    clearButton->setIcon(clearIcon);
+    margins.setRight(margins.right() +
+                        clearIcon.actualSize(clearButton->size()).width() + 10);
+
+    setTextMargins(margins);
+}
+
+EditorSearchClearEdit::~EditorSearchClearEdit()
+{
+}
+
+// -------------------------------------------------------------------------------------
 
 EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
     QFrame(parent),
-    d(editorViewP)
+    d(editorViewP),
+    m_findFlags(0)
 {
     // find row
     QGridLayout *layout  = new QGridLayout(this);
     QLabel      *lblFind = new QLabel(this);
     m_foundCountLabel    = new QLabel(this);
-    m_searchEdit         = new QLineEdit(this);
+    m_searchEdit         = new EditorSearchClearEdit(this, true);
     m_searchButton       = new QPushButton(this);
     m_upButton           = new QPushButton(this);
     m_downButton         = new QPushButton(this);
@@ -706,6 +754,7 @@ EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
     m_foundCountLabel->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
     m_hideButton->setIcon(BitmapFactory().iconFromTheme("delete"));
 
+    // add widgets to bar
     layout->addWidget(lblFind, 0, 0);
     layout->addWidget(m_searchEdit, 0, 1);
     layout->addWidget(m_searchButton, 0, 2);
@@ -716,7 +765,7 @@ EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
 
     // replace row
     QLabel *lblReplace     = new QLabel(this);
-    m_replaceEdit          = new QLineEdit(this);
+    m_replaceEdit          = new EditorSearchClearEdit(this, false);
     m_replaceButton        = new QPushButton(this);
     m_replaceAndNextButton = new QPushButton(this);
     m_replaceAllButton     = new QPushButton(this);
@@ -744,6 +793,7 @@ EditorSearchBar::EditorSearchBar(EditorView *parent, EditorViewP *editorViewP) :
     connect(m_searchEdit, SIGNAL(returnPressed()), this, SLOT(downSearch()));
     connect(m_searchEdit, SIGNAL(textChanged(QString)),
                         this, SLOT(searchChanged(QString)));
+    connect(m_searchEdit, SIGNAL(showSettings()), this, SLOT(showSettings()));
 
     connect(m_replaceButton, SIGNAL(clicked()), this, SLOT(replace()));
     connect(m_replaceAndNextButton, SIGNAL(clicked()),
@@ -768,7 +818,7 @@ void EditorSearchBar::show()
 void EditorSearchBar::upSearch(bool cycle)
 {
     if (m_searchEdit->text().size()) {
-        if (!d->textEdit->find(m_searchEdit->text(), QTextDocument::FindBackward)
+        if (!d->textEdit->find(m_searchEdit->text(), m_findFlags & QTextDocument::FindBackward)
             && cycle)
         {
             // start over
@@ -787,7 +837,7 @@ void EditorSearchBar::upSearch(bool cycle)
 void EditorSearchBar::downSearch(bool cycle)
 {
     if (m_searchEdit->text().size()) {
-        if (!d->textEdit->find(m_searchEdit->text()) && cycle) {
+        if (!d->textEdit->find(m_searchEdit->text(), m_findFlags) && cycle) {
             // start over
             QTextCursor cursor = d->textEdit->textCursor();
             if (!cursor.isNull()) {
@@ -803,13 +853,20 @@ void EditorSearchBar::downSearch(bool cycle)
 
 void EditorSearchBar::foundCount(int foundOcurrences)
 {
+    // color red if not found
+    if (foundOcurrences <= 0)
+        m_searchEdit->setStyleSheet(QLatin1String("QLineEdit {color: red}"));
+    else
+        m_searchEdit->setStyleSheet(QLatin1String(""));
+
     QString found = QString::number(foundOcurrences);
     m_foundCountLabel->setText(tr("Found: %1 occurences").arg(found));
 }
 
 void EditorSearchBar::searchChanged(const QString &str)
 {
-    int found = static_cast<TextEditor*>(d->textEdit)->findAndHighlight(str);
+    int found = static_cast<TextEditor*>(d->textEdit)->
+                                findAndHighlight(str, m_findFlags);
     d->textEdit->repaint();
     foundCount(found);
 }
@@ -832,7 +889,7 @@ void EditorSearchBar::replaceAndFind()
         return;
 
     replace();
-    d->textEdit->find(m_searchEdit->text());
+    d->textEdit->find(m_searchEdit->text(), m_findFlags);
 }
 
 void EditorSearchBar::replaceAll()
@@ -843,17 +900,45 @@ void EditorSearchBar::replaceAll()
     QTextCursor cursor = d->textEdit->textCursor();
     int oldPos = cursor.position();
 
-    cursor = d->textEdit->document()->find(m_searchEdit->text());
+    cursor = d->textEdit->document()->find(m_searchEdit->text(), m_findFlags);
 
     while (!cursor.isNull()) {
         cursor.insertText(m_replaceEdit->text());
-        cursor = d->textEdit->document()->find(m_searchEdit->text(), cursor);
+        cursor = d->textEdit->document()->find(m_searchEdit->text(), cursor, m_findFlags);
     }
 
     searchChanged(m_searchEdit->text());
 
     cursor.setPosition(oldPos);
     d->textEdit->setTextCursor(cursor);
+}
+
+void EditorSearchBar::showSettings()
+{
+    QMenu menu;
+    QAction caseSensitive(tr("Case sensitive"), &menu);
+    caseSensitive.setCheckable(true);
+    caseSensitive.setChecked(m_findFlags & QTextDocument::FindCaseSensitively);
+    menu.addAction(&caseSensitive);
+
+    QAction wholeWords(tr("Find whole words"), &menu);
+    wholeWords.setCheckable(true);
+    wholeWords.setChecked(m_findFlags & QTextDocument::FindWholeWords);
+    menu.addAction(&wholeWords);
+
+
+    QAction *res = menu.exec(QCursor::pos());
+    if (res == &caseSensitive) {
+        if (res->isChecked())
+            m_findFlags |= QTextDocument::FindCaseSensitively;
+        else
+            m_findFlags &= ~(QTextDocument::FindCaseSensitively);
+    } else if (res == &wholeWords) {
+        if (res->isChecked())
+            m_findFlags |= QTextDocument::FindWholeWords;
+        else
+            m_findFlags &= ~(QTextDocument::FindWholeWords);
+    }
 }
 
 #include "moc_EditorView.cpp"

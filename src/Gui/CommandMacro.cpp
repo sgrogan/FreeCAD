@@ -354,7 +354,7 @@ StdCmdShowSearchBar::StdCmdShowSearchBar()
     sWhatsThis    = "Std_ShowFindBar";
     sStatusTip    = QT_TR_NOOP("Show find");
     sPixmap       = 0;
-    sAccel        = "Ctrl+F";
+    sAccel        = "";
     eType         = 0;
 }
 

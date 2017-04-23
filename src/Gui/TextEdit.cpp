@@ -33,6 +33,7 @@
 #include "TextEdit.h"
 #include "SyntaxHighlighter.h"
 #include <QScrollBar>
+#include <QStyleOptionSlider>
 
 using namespace Gui;
 
@@ -199,6 +200,7 @@ namespace Gui {
 struct TextEditorP
 {
     QMap<QString, QColor> colormap; // Color map
+    QHash<QString, QList<QTextEdit::ExtraSelection> > extraSelections;
     TextEditorP()
     {
         colormap[QLatin1String("Text")] = Qt::black;
@@ -230,6 +232,9 @@ TextEditor::TextEditor(QWidget* parent)
     d = new TextEditorP();
     lineNumberArea = new LineMarkerArea(this);
 
+    // replace scrollbar to a annotated one
+    setVerticalScrollBar(new AnnotatedScrollBar(this));
+
     QFont serifFont(QLatin1String("Courier"), 10, QFont::Normal);
     setFont(serifFont);
     lineNumberArea->setFont(serifFont);
@@ -243,14 +248,14 @@ TextEditor::TextEditor(QWidget* parent)
     hPrefGrp->NotifyAll();
 
     connect(this, SIGNAL(cursorPositionChanged()),
-            this, SLOT(highlightCurrentLine()));
+            this, SLOT(highlightSelections()));
     connect(this, SIGNAL(blockCountChanged(int)),
             this, SLOT(updateLineNumberAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(const QRect &, int)),
             this, SLOT(updateLineNumberArea(const QRect &, int)));
 
     updateLineNumberAreaWidth(0);
-    highlightCurrentLine();
+    highlightSelections();
 }
 
 /** Destroys the object and frees any allocated resources */
@@ -266,31 +271,56 @@ int TextEditor::lineNumberAreaWidth()
     return fontMetrics().width(QLatin1String("0000"))+10;
 }
 
-int TextEditor::findAndHighlight(const QString needle)
+int TextEditor::findAndHighlight(const QString needle, QTextDocument::FindFlags flags)
 {
     QList<QTextEdit::ExtraSelection> selections;
 
-    int foundCount = 0;
+
+    QList<int> found;
     if (needle.size()) {
         QTextCharFormat format;
         format.setForeground(QColor(QLatin1String("#110059")));
         format.setBackground(QColor(QLatin1String("#f7f74f")));
 
         QTextDocument *doc = document();
-        QTextCursor cursor = doc->find(needle);
+        QTextCursor cursor = doc->find(needle, 0, flags);
 
         while (!cursor.isNull()) {
             QTextEdit::ExtraSelection selection;
             selection.format = format;
             selection.cursor = cursor;
             selections.append(selection);
-            ++foundCount;
-            cursor = doc->find(needle, cursor);
+            found.append(cursor.blockNumber());
+            cursor = doc->find(needle, cursor, flags);
         }
     }
 
-    setExtraSelections(selections);
-    return foundCount;
+    setTextMarkers(QLatin1String("find"), selections);
+    AnnotatedScrollBar *vBar = qobject_cast<AnnotatedScrollBar*>(verticalScrollBar());
+    if (vBar) {
+        static const QColor searchMarkerScrollbar = QColor(65, 209, 60); // green
+        vBar->resetMarkers(found, searchMarkerScrollbar);
+
+    }
+    return found.size();
+}
+
+void TextEditor::setTextMarkers(QString key, QList<QTextEdit::ExtraSelection> selections)
+{
+    // store the new value
+    if (selections.size() == 0)
+        d->extraSelections.remove(key);
+    else
+        d->extraSelections.insert(key, selections);
+
+    // show the new value includeding the old stored ones
+     QList<QTextEdit::ExtraSelection> show;
+     for (QList<QTextEdit::ExtraSelection> &list : d->extraSelections) {
+         for (QTextEdit::ExtraSelection &sel: list)
+             show.append(sel);
+     }
+
+     setExtraSelections(show);
 }
 
 void TextEditor::updateLineNumberAreaWidth(int /* newBlockCount */)
@@ -317,11 +347,12 @@ void TextEditor::resizeEvent(QResizeEvent *e)
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
-void TextEditor::highlightCurrentLine()
+void TextEditor::highlightSelections()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
 
     if (!isReadOnly()) {
+        // gighlight current line
         QTextEdit::ExtraSelection selection;
         QColor lineColor = d->colormap[QLatin1String("Current line highlight")];
         unsigned long col = (lineColor.red() << 24) | (lineColor.green() << 16) | (lineColor.blue() << 8);
@@ -335,7 +366,7 @@ void TextEditor::highlightCurrentLine()
         extraSelections.append(selection);
     }
 
-    setExtraSelections(extraSelections);
+    setTextMarkers(QLatin1String("highlightCurrentLine"), extraSelections);
 }
 
 void TextEditor::drawMarker(int line, int x, int y, QPainter* p)
@@ -609,6 +640,88 @@ void LineMarkerArea::contextMenuEvent(QContextMenuEvent *event)
         Q_EMIT contextMenuOnLine(line, event);
     }
 
+}
+
+// -----------------------------------------------------------------------------
+
+AnnotatedScrollBar::AnnotatedScrollBar(TextEditor *parent):
+    QScrollBar(parent), m_editor(parent)
+{
+}
+
+AnnotatedScrollBar::~AnnotatedScrollBar()
+{
+}
+
+void AnnotatedScrollBar::setMarker(int line, QColor color)
+{
+    m_markers.insertMulti(line, color);
+
+    repaint();
+}
+
+void AnnotatedScrollBar::resetMarkers(QList<int> newMarkers, QColor color)
+{
+    clearMarkers(color);
+    for (int line : newMarkers) {
+        m_markers.insert(line, color);
+    }
+
+    repaint();
+}
+
+void AnnotatedScrollBar::clearMarkers()
+{
+    m_markers.clear();
+    repaint();
+}
+
+void AnnotatedScrollBar::clearMarkers(QColor color)
+{
+    // segfaults if we try to clear in one pass
+    QList<int> found;
+    QMultiHash<int, QColor>::iterator it;
+    for (it = m_markers.begin(); it != m_markers.end(); ++it) {
+        if (it.value() == color)
+            found.append(it.key());
+    }
+
+    for (int i : found)
+        m_markers.remove(i, color);
+
+    repaint();
+}
+
+void AnnotatedScrollBar::paintEvent(QPaintEvent *e)
+{
+    // render the scrollbar
+    QScrollBar::paintEvent(e);
+
+    QPainter painter(this);
+    QStyleOptionSlider opt;
+    initStyleOption(&opt);
+    QRect groove = style()->subControlRect(QStyle::CC_ScrollBar, &opt,
+                                         QStyle::SC_ScrollBarGroove, this);
+    QRect arrow = style()->subControlRect(QStyle::CC_ScrollBar, &opt,
+                                          QStyle::SC_ScrollBarSubLine, this);
+
+    //painter.setClipRegion(QRegion(groove) - QRegion(slider), Qt::IntersectClip);
+
+    float yScale =  (float)groove.height() / (float)m_editor->document()->lineCount();
+    int x1 = groove.x(),
+        x2 = groove.x() + groove.width();
+    QColor color;
+    QMultiHash<int, QColor>::iterator it;
+    for (it = m_markers.begin(); it != m_markers.end(); ++it) {
+        if (it.value() != color) {
+            color = it.value();
+            painter.setBrush(color);
+            painter.setPen(QPen(color, 2.0));
+        }
+
+        int y = (it.key() * yScale) + groove.y();
+        painter.drawLine(x1, y, x2, y);
+    }
 }
 
 // ------------------------------------------------------------------------------

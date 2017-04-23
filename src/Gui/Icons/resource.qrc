@@ -158,7 +158,11 @@
         <file>debug-step-out.svg</file>
         <file>debug-step-over.svg</file>
         <file>debug-continue.svg</file>
+        <file>clear-text.svg</file>
+        <file>search-setting.svg</file>
     </qresource>
+    <!-- Alternative directory names for icons that should be loaded from a theme -->
+    <!-- See also http://permalink.gmane.org/gmane.comp.lib.qt.general/26374 -->
     <qresource prefix="/icons/FreeCAD-default">
         <file>index.theme</file>
     </qresource>
@@ -230,5 +234,13 @@
         <file>DrawStyleShaded.svg</file>
         <file>DrawStyleWireFrame.svg</file>
         <file>user.svg</file>
+        <file>breakpoint-disabled.svg</file>
+        <file>debug-halt.svg</file>
+        <file>debug-step-into.svg</file>
+        <file>debug-step-out.svg</file>
+        <file>debug-step-over.svg</file>
+        <file>debug-continue.svg</file>
+        <file>clear-text.svg</file>
+        <file>search-setting.svg</file>
     </qresource>
 </RCC>

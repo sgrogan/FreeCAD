@@ -26,6 +26,7 @@
 
 #include <QListWidget>
 #include <QPlainTextEdit>
+#include <QScrollBar>
 #include "View.h"
 #include "Window.h"
 
@@ -90,12 +91,14 @@ public:
 
     //void lineNumberAreaPaintEvent(QPaintEvent* );
     int lineNumberAreaWidth();
-    int findAndHighlight(const QString needle);
+    int findAndHighlight(const QString needle, QTextDocument::FindFlags flags = 0);
+    // highlights text such as search for
+    void setTextMarkers(QString key, QList<QTextEdit::ExtraSelection> selections);
 
 private Q_SLOTS:
     void updateLineNumberAreaWidth(int newBlockCount);
     void updateLineNumberArea(const QRect &, int);
-    void highlightCurrentLine();
+    void highlightSelections();
 
 protected:
     void keyPressEvent (QKeyEvent * e);
@@ -138,6 +141,49 @@ protected:
 
 private:
     TextEditor *textEditor;
+};
+
+
+/**
+ * @breif A custom scrollbar that can show markers at different lines
+ *      such as markers when searching for a word
+ */
+class AnnotatedScrollBar : public QScrollBar
+{
+    Q_OBJECT
+public:
+    AnnotatedScrollBar(TextEditor *parent = 0);
+    ~AnnotatedScrollBar();
+
+    /**
+     * @brief setMarker at a given line in document
+     * @param line: the line
+     * @param color: the color to render with
+     */
+    void setMarker(int line, QColor color);
+
+    /**
+     * @brief resetMarkers clears markers och color and sets new ones found in color
+     * @param color
+     */
+    void resetMarkers(QList<int> newMarkers, QColor color);
+    /**
+     * @brief Clear all markers
+     */
+    void clearMarkers();
+
+    /**
+     * @brief Clear all Markers of the given color
+     * @param color
+     */
+    void clearMarkers(QColor color);
+
+protected:
+    void paintEvent(QPaintEvent *e);
+
+private:
+    QMultiHash<int, QColor> m_markers;
+    TextEditor *m_editor;
 };
 
 /**
