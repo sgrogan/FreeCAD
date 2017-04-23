@@ -80,6 +80,8 @@ public:
     QTreeView   *m_varView;
     QLabel      *m_stackLabel;
     QTableView  *m_stackView;
+    QCheckBox   *m_varSuperChk;
+    QLabel      *m_varSuperLbl;
     PythonDebuggerViewP() { }
     ~PythonDebuggerViewP() { }
 };
@@ -139,19 +141,18 @@ PythonDebuggerView::PythonDebuggerView(QWidget *parent)
     QHeaderView *header = d->m_stackView->horizontalHeader();
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    header->setSectionResizeMode(QHeaderView::ResizeToContents);
+    //header->setSectionResizeMode(QHeaderView::ResizeToContents);
 #else
-    header->setResizeMode(QHeaderView::ResizeToContents);
+    //header->setResizeMode(QHeaderView::ResizeToContents);
 #endif
     d->m_stackView->setShowGrid(false);
+    d->m_stackView->setTextElideMode(Qt::ElideLeft);
     stackLayout->addWidget(d->m_stackLabel);
     stackLayout->addWidget(d->m_stackView);
 
 
     connect(d->m_stackView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex&)),
                                         this, SLOT(currentChanged(const QModelIndex&, const QModelIndex&)));
-
-
 
     setLayout(vLayout);
     // raise the tab page set in the preferences
@@ -174,6 +175,7 @@ void PythonDebuggerView::changeEvent(QEvent *e)
 //        for (int i=0; i<tabWidget->count();i++)
 //            tabWidget->setTabText(i, tabWidget->widget(i)->windowTitle());
         d->m_stackLabel->setText(tr("Stack frames"));
+        d->m_varLabel->setText(tr("Variables"));
     }
 }
 
@@ -630,16 +632,10 @@ VariableTreeModel::VariableTreeModel(QObject *parent)
     connect(debugger, SIGNAL(nextInstruction(PyFrameObject*)),
                this, SLOT(updateVariables(PyFrameObject*)));
 
-    //connect(debugger, SIGNAL(functionCalled(PyFrameObject*)),
-    //           this, SLOT(updateVariables(PyFrameObject*)));
-
     connect(debugger, SIGNAL(functionExited(PyFrameObject*)),
                this, SLOT(clear()));
 
     connect(debugger, SIGNAL(stopped()), this, SLOT(clear()));
-
-
-    //setupModelData(data.split(QLatin1String("\n")), rootItem);
 }
 
 VariableTreeModel::~VariableTreeModel()
@@ -690,7 +686,7 @@ QVariant VariableTreeModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    if (role != Qt::DisplayRole)
+    if (role != Qt::DisplayRole && role != Qt::ToolTipRole)
         return QVariant();
 
     VariableTreeItem *item = static_cast<VariableTreeItem*>(index.internalPointer());
@@ -846,7 +842,6 @@ void VariableTreeModel::lazyLoad(VariableTreeItem *parentItem)
     }
 
 }
-
 
 void VariableTreeModel::scanObject(PyObject *startObject, VariableTreeItem *parentItem,
                                    int depth, bool noBuiltins)

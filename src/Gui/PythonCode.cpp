@@ -50,7 +50,7 @@
 class QModelIndex;
 
 using namespace Gui;
-
+/*
 PythonCodeObject::PythonCodeObject(PyObject *pyObj):
     m_pyObject(pyObj)
 {
@@ -237,6 +237,7 @@ int PythonCodeObject::length() const
         return PyTuple_Size(m_pyObject);
     return -1;
 }
+*/
 
 // --------------------------------------------------
 

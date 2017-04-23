@@ -722,8 +722,9 @@ void PythonDebugger::runFile(const QString& fn)
     }
 
     if (d->trystop) {
+        if (d->init)
+            PyErr_Clear();
         stop(); // de init tracer_function and reset object
-        PyErr_Clear();
     }
     d->state = RunningState::Stopped;
 }
@@ -980,14 +981,18 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
         if (dbg->d->state != RunningState::Running) {
             try {
                 Q_EMIT dbg->functionCalled(frame);
-            } catch(...){ } // might throw
+            } catch(...){
+                PyErr_Clear();
+            } // might throw
         }
         return 0;
     case PyTrace_RETURN:
         if (dbg->d->state != RunningState::Running) {
             try {
                 Q_EMIT dbg->functionExited(frame);
-            } catch (...) { }
+            } catch (...) {
+                PyErr_Clear();
+            }
         }
         return 0;
     case PyTrace_LINE:
@@ -1038,7 +1043,9 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
                     try {
                         Q_EMIT dbg->haltAt(file, line);
                         Q_EMIT dbg->nextInstruction(frame);
-                    } catch(...) { }
+                    } catch(...) {
+                        PyErr_Clear();
+                    }
                 }   // end threadlock block
                 QObject::connect(dbg, SIGNAL(_signalNextStep()), &loop, SLOT(quit()));
                 loop.exec();
@@ -1048,7 +1055,9 @@ int PythonDebugger::tracer_callback(PyObject *obj, PyFrameObject *frame, int wha
                 }   // end threadlock block
                 try {
                     Q_EMIT dbg->releaseAt(file, line);
-                } catch (...) { }
+                } catch (...) {
+                    PyErr_Clear();
+                }
             }
 
             return 0;
@@ -1109,8 +1118,9 @@ bool PythonDebugger::evalCondition(const char *condition, PyFrameObject *frame)
 // static
 void PythonDebugger::finalizeFunction()
 {
-    if (globalInstance != nullptr)
-        globalInstance->_signalNextStep(); // release a pending halt on app close
+    if (globalInstance != nullptr) {
+        globalInstance->stop(); // release a pending halt on app close
+    }
 }
 
 #include "moc_PythonDebugger.cpp"

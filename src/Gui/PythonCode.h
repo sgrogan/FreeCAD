@@ -39,6 +39,7 @@ class PythonEditorBreakpointDlg;
 class PythonCodeP;
 class TextEdit;
 
+/*
 class PythonCodeObject {
 public:
     PythonCodeObject(PyObject *pyObj);
@@ -94,6 +95,7 @@ public:
 private:
     PyObject *m_pyObject;
 };
+*/
 
 /**
  * @brief Handles code inspection from the python engine internals
