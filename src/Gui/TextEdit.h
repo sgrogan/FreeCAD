@@ -178,6 +178,8 @@ public:
      */
     void clearMarkers(QColor color);
 
+    void clearMarker(int line, QColor color);
+
 protected:
     void paintEvent(QPaintEvent *e);
 

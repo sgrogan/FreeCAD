@@ -692,6 +692,12 @@ void AnnotatedScrollBar::clearMarkers(QColor color)
     repaint();
 }
 
+void AnnotatedScrollBar::clearMarker(int line, QColor color)
+{
+    m_markers.remove(line, color);
+    repaint();
+}
+
 void AnnotatedScrollBar::paintEvent(QPaintEvent *e)
 {
     // render the scrollbar
@@ -702,14 +708,10 @@ void AnnotatedScrollBar::paintEvent(QPaintEvent *e)
     initStyleOption(&opt);
     QRect groove = style()->subControlRect(QStyle::CC_ScrollBar, &opt,
                                          QStyle::SC_ScrollBarGroove, this);
-    QRect arrow = style()->subControlRect(QStyle::CC_ScrollBar, &opt,
-                                          QStyle::SC_ScrollBarSubLine, this);
-
-    //painter.setClipRegion(QRegion(groove) - QRegion(slider), Qt::IntersectClip);
 
     float yScale =  (float)groove.height() / (float)m_editor->document()->lineCount();
-    int x1 = groove.x(),
-        x2 = groove.x() + groove.width();
+    int x1 = groove.x() +4,
+        x2 = groove.x() + groove.width() -4;
     QColor color;
     QMultiHash<int, QColor>::iterator it;
     for (it = m_markers.begin(); it != m_markers.end(); ++it) {

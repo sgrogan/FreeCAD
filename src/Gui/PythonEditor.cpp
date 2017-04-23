@@ -72,9 +72,6 @@ struct PythonEditorP
     PythonMatchingChars* matchingChars;
     PythonEditorP()
         : debugLine(-1),
-          breakpoint(BitmapFactory().iconFromTheme("breakpoint").pixmap(16,16)),
-          breakpointDisabled(BitmapFactory().iconFromTheme("breakpoint-disabled").pixmap(16,16)),
-          debugMarker(BitmapFactory().iconFromTheme("debug-marker").pixmap(16,16)),
           callTipsList(0)
     {
         debugger = Application::Instance->macroManager()->debugger();
@@ -83,6 +80,12 @@ struct PythonEditorP
     ~PythonEditorP()
     {
         delete pythonCode;
+    }
+    void loadIcons(int rowHeight)
+    {
+        breakpoint = BitmapFactory().iconFromTheme("breakpoint").pixmap(rowHeight, rowHeight);
+        breakpointDisabled = BitmapFactory().iconFromTheme("breakpoint-disabled").pixmap(rowHeight, rowHeight);
+        debugMarker = BitmapFactory().iconFromTheme("debug-marker").pixmap(rowHeight, rowHeight);
     }
 };
 
@@ -100,6 +103,8 @@ PythonEditor::PythonEditor(QWidget* parent)
   : TextEditor(parent)
 {
     d = new PythonEditorP();
+    d->loadIcons(fontMetrics().height());
+
     PythonSyntaxHighlighter *hl = new PythonSyntaxHighlighter(this);
     this->setSyntaxHighlighter(hl);            
 
@@ -183,6 +188,16 @@ void PythonEditor::startDebug()
     }
 }
 
+void PythonEditor::OnChange(Base::Subject<const char *> &rCaller, const char *rcReason)
+{
+    // reload breakpoint and debug icons as correct size
+    TextEditor::OnChange(rCaller, rcReason);
+    if (strcmp(rcReason, "FontSize") == 0 || strcmp(rcReason, "Font") == 0) {
+        int rowHeight = fontMetrics().height();
+        d->loadIcons(rowHeight);
+    }
+}
+
 void PythonEditor::toggleBreakpoint()
 {
     QTextCursor cursor = textCursor();
@@ -225,8 +240,8 @@ void PythonEditor::drawMarker(int line, int x, int y, QPainter* p)
             p->drawPixmap(x, y, d->breakpoint);
     }
     if (d->debugLine == line) {
-        p->drawPixmap(x, y+2, d->debugMarker);
-        d->debugRect = QRect(x, y+2, d->debugMarker.width(), d->debugMarker.height());
+        p->drawPixmap(x, y, d->debugMarker);
+        d->debugRect = QRect(x, y, d->debugMarker.width(), d->debugMarker.height());
     }
 }
 
@@ -456,6 +471,7 @@ bool PythonEditor::event(QEvent *event)
 
 void PythonEditor::markerAreaContextMenu(int line, QContextMenuEvent *event)
 {
+    static const QColor breakPointScrollBarMarkerColor = QColor(242, 58, 82); // red
     QMenu menu;
     BreakpointLine *bpl = d->debugger->getBreakpointLine(d->filename, line);
     if (bpl != nullptr) {
@@ -481,6 +497,10 @@ void PythonEditor::markerAreaContextMenu(int line, QContextMenuEvent *event)
             dlg.exec();
         } else if (res == &del) {
             d->debugger->deleteBreakpoint(d->filename, line);
+            AnnotatedScrollBar *vBar =
+                    qobject_cast<AnnotatedScrollBar*>(verticalScrollBar());
+            if (vBar)
+                vBar->clearMarker(line, breakPointScrollBarMarkerColor);
         }
 
     } else {
@@ -489,6 +509,10 @@ void PythonEditor::markerAreaContextMenu(int line, QContextMenuEvent *event)
         QAction *res = menu.exec(event->globalPos());
         if (res == &create) {
             d->debugger->setBreakpoint(d->filename, line);
+            AnnotatedScrollBar *vBar =
+                    qobject_cast<AnnotatedScrollBar*>(verticalScrollBar());
+            if (vBar)
+                vBar->setMarker(line, breakPointScrollBarMarkerColor);
         }
     }
 

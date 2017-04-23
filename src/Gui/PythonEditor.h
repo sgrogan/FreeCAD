@@ -85,6 +85,8 @@ public Q_SLOTS:
     int  findText(const QString find);
     void startDebug();
 
+    void OnChange(Base::Subject<const char*> &rCaller,const char* rcReason);
+
 protected:
     /** Pops up the context menu with some extensions */
     void contextMenuEvent ( QContextMenuEvent* e );
